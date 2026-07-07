@@ -726,7 +726,7 @@ function ucfirst(s){return s.charAt(0).toUpperCase()+s.slice(1)}
 function buildFallbackResponse(kw,count){
   var msgs=[];
   if(count===0){
-    msgs.push("I couldn't find any cars matching that. Try broadening your search -- remove some filters or try a different make.");
+    msgs.push("I couldn't find any cars matching that. Try broadening your search or clear filters to see all "+allCars.length+" cars.");
   }else if(count===1){
     var c=filteredCars[0];
     msgs.push("I found just one car: a <strong>"+c.year+" "+ucfirst(c.manufacturer)+" "+c.model+"</strong> for <strong>$"+c.price.toLocaleString()+"</strong>. "+c.odometer+" miles, "+c.condition+" condition, "+c.fuel+", "+c.transmission+".");
@@ -829,7 +829,7 @@ function renderCars(){
       '</div>'+
       '<button class="car-enquire-btn" onclick="event.stopPropagation();openEnquire(\''+escHtml(ucfirst(c.manufacturer))+' '+escHtml(c.model)+'\','+c.year+','+c.price+')">📞 Enquire Now</button>'+
     '</div>';
-  }).join("")||'<div style="text-align:center;padding:40px;color:var(--text-dim);font-size:0.85rem">No cars match your filters. Try adjusting the criteria or clearing filters.</div>';
+  }).join("")||'<div style="text-align:center;padding:40px;color:var(--text-dim);font-size:0.85rem"><p style="font-size:2rem;margin-bottom:12px">🔍</p><p style="margin-bottom:8px">No cars match your current filters.</p><p style="font-size:0.75rem;margin-bottom:16px">Try removing some filters or clearing them entirely.</p><button onclick="clearAllFilters()" style="background:var(--accent);color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:0.78rem;font-weight:700;cursor:pointer;font-family:inherit">Show all '+allCars.length+' cars</button></div>';
   updateFilterUI();
 }
 
@@ -1090,6 +1090,7 @@ async function send(){
 
   if(S(txt)==="keep exploring"){hideTyping();clearAllFilters();addMsg("Here's the full catalogue again! What catches your eye?",'bot');sending=false;return;}
   if(S(txt)==="clear all filters"){hideTyping();clearAllFilters();addMsg("Filters cleared! Showing all "+allCars.length+" cars. What are you looking for?",'bot');lastBotAsked=true;sending=false;return;}
+  if(S(txt)==="show all cars"){hideTyping();clearAllFilters();addMsg("Here's the full catalogue of "+allCars.length+" cars. What catches your eye?",'bot');addSugg(getSafeSuggestionChips(3));lastBotAsked=true;sending=false;return;}
 
   if(expectingHumanBot){
     var hb=S(txt);
@@ -1193,7 +1194,7 @@ async function send(){
   // Step 4: Post-search suggestion chips (only suggest options that have results)
   var sugChips=[];
   if(filteredCars.length===0){
-    sugChips.push("Clear all filters");
+    sugChips=["Clear all filters","Show all cars","Human"];
   }else{
     // Suggest chips that actually produce results
     var makes=[];var seenMake={};
