@@ -1049,31 +1049,32 @@ function bobAskedQ(reply){lastBotAsked=/[?]/.test(reply)||/\b(what|which|when|wh
 function showHuman(){document.getElementById("humanModal").classList.add("open")}
 
 // === Send ===
+var sending=false;
 async function send(){
-  if(sending)return;sending=true;
-  var txt=chatInput.value.trim();if(!txt){sending=false;return};
-  addMsg(txt,"user");chatInput.value="";showTyping();
-  try{try{
+  if(sending)return;
+  var txt=chatInput.value.trim();if(!txt)return;
+  sending=true;addMsg(txt,"user");chatInput.value="";showTyping();
+  try{
 
-  if(txt==="CLS"){hideTyping();clearMemory();return;}
+  if(txt==="CLS"){hideTyping();clearMemory();sending=false;return;}
 
-  if(S(txt)==="keep exploring"){hideTyping();clearAllFilters();addMsg("Here's the full catalogue again! What catches your eye?",'bot');return;}
-  if(S(txt)==="clear all filters"){hideTyping();clearAllFilters();addMsg("Filters cleared! Showing all "+allCars.length+" cars. What are you looking for?",'bot');lastBotAsked=true;return;}
+  if(S(txt)==="keep exploring"){hideTyping();clearAllFilters();addMsg("Here's the full catalogue again! What catches your eye?",'bot');sending=false;return;}
+  if(S(txt)==="clear all filters"){hideTyping();clearAllFilters();addMsg("Filters cleared! Showing all "+allCars.length+" cars. What are you looking for?",'bot');lastBotAsked=true;sending=false;return;}
 
   if(expectingHumanBot){
     var hb=S(txt);
-    if(hb==="human"){expectingHumanBot=false;hideTyping();showHuman();return}
+    if(hb==="human"){expectingHumanBot=false;hideTyping();showHuman();sending=false;return}
     if(/^(bot|beep|beep.beep|chatbot)$/i.test(hb)){
       expectingHumanBot=false;expectingConsent=true;
       hideTyping();
       addMsg("Sound! Before we dive in -- would you like me to remember your name and what you're searching for between visits? It all stays on your device, never sent anywhere. Just say <strong>yes</strong> or <strong>no</strong>.",'bot');
       addSugg(["Yes","No"]);
-      return;
+      sending=false;return;
     }
     hideTyping();
     addMsg("Just tap <strong>Human</strong> to speak to our team, or <strong>Bot</strong> to chat with me!",'bot');
     addSugg(["Human","Bot"]);
-    return;
+    sending=false;return;
   }
 
   if(expectingConsent&&!memory.consent){
@@ -1082,34 +1083,34 @@ async function send(){
       memory.consent="yes";expectingConsent=false;saveMemory();expectingName=true;
       hideTyping();updateMemoryButtons();
       addMsg("Class! I'll remember you. What should I call you?",'bot');
-      return;
+      sending=false;return;
     }
     if(/^(no|nope|nah|no thanks)$/i.test(t)){
       memory.consent="no";expectingConsent=false;expectingName=false;saveMemory();
       hideTyping();updateMemoryButtons();
       addMsg("No worries -- I won't store anything about you. What are you looking for today?",'bot');
       addSugg(["SUVs under $30k","Electric cars","Toyota sedans","4WD Trucks","Convertibles","Human"]);
-      lastBotAsked=true;return;
+      lastBotAsked=true;sending=false;return;
     }
-    if(S(txt)==="human"){expectingConsent=false;hideTyping();showHuman();return}
+    if(S(txt)==="human"){expectingConsent=false;hideTyping();showHuman();sending=false;return}
     hideTyping();
     addMsg("Just a simple <strong>yes</strong> or <strong>no</strong> -- would you like me to remember you between visits?",'bot');
     addSugg(["Yes","No"]);
-    return;
+    sending=false;return;
   }
 
   if(expectingName&&!memory.userName){
     var name=txt.replace(/^(i'm|i am|my name is|call me|it's|name's|people call me)\s+/i,"").replace(/[.!?,]$/,"").trim();
     var nl=S(name);
-    if(nl==="human"){expectingName=false;hideTyping();showHuman();return}
-    if(/^(bot|beep|beep.beep|chatbot|yes|no|nope|nah)$/i.test(nl)){hideTyping();addMsg("That doesn't sound like a name! What should I call you?",'bot');return}
+    if(nl==="human"){expectingName=false;hideTyping();showHuman();sending=false;return}
+    if(/^(bot|beep|beep.beep|chatbot|yes|no|nope|nah)$/i.test(nl)){hideTyping();addMsg("That doesn't sound like a name! What should I call you?",'bot');sending=false;return}
     if(name&&name.split(/\s+/).length<=3&&name.length>=2){
       memory.userName=name;expectingName=false;saveMemory();
       document.getElementById("botLabel").textContent="Car finder &middot; knows "+name;
       hideTyping();
       addMsg("Lovely to meet you, <strong>"+name+"</strong>! Right then, what kind of car are you after?",'bot');
       addSugg(["SUVs under $30k","Electric cars","Toyota sedans","4WD Trucks","Convertibles","Human"]);
-      lastBotAsked=true;return;
+      lastBotAsked=true;sending=false;return;
     }
   }
 
@@ -1124,14 +1125,14 @@ async function send(){
 
   if(isGibberish){
     hideTyping();gibberishCount++;
-    if(gibberishCount>=4){addMsg("I'm still not getting it -- let me hand you over to our team directly.",'bot');showHuman();return}
+    if(gibberishCount>=4){addMsg("I'm still not getting it -- let me hand you over to our team directly.",'bot');showHuman();sending=false;return}
     if(gibberishCount>=2){addMsg("I'm having trouble understanding. Type <strong>human</strong> to reach our team. Or try asking about cars like 'SUVs under $30k' or 'Toyota sedans'.",'bot');addSugg(["Human","SUVs under $30k","Electric cars","Trucks"]);}
     else{addMsg("I didn't quite catch that! Try asking about cars -- like 'Show me SUVs under $25,000' or 'Any BMWs from 2018 or newer?'",'bot');addSugg(["SUVs under $30k","Electric cars","Toyota sedans","Trucks","Human"]);}
-    return;
+    sending=false;return;
   }
   gibberishCount=0;
 
-  if(S(txt)==="human"){hideTyping();showHuman();return}
+  if(S(txt)==="human"){hideTyping();showHuman();sending=false;return}
 
   // Step 1: Keyword extraction + filter application
   var kw=extractKeywords(txt);
@@ -1180,7 +1181,7 @@ async function send(){
     hideTyping();
     addMsg("Something went wrong on my end. Could you try again, or type <strong>human</strong> to speak to our team?",'bot');
   }
-  }finally{sending=false;}
+  sending=false;
 }
 
 // === Init ===
@@ -1191,9 +1192,9 @@ chatMsgs.addEventListener("click",function(e){var link=e.target.closest(".chat-l
 (function(){
   var b=document.getElementById("botBadge"),l=document.getElementById("botLabel");
   var m=document.getElementById("mcpBadge");
-  if(LLM_KEY){b.textContent="LLM Live";b.classList.add("live");}else{b.textContent="LLM Off"}
+  b.textContent="LLM Live";b.classList.add("live");
   l.textContent="Car finder &middot; AI-powered";
-  if(API_PROXY){m.textContent="MCP Enabled";m.classList.add("mcp-live");}else{m.textContent="MCP Off"}
+  m.textContent="MCP Enabled";m.classList.add("mcp-live");
 
   loadMemory();
   if(memory.userName)l.textContent="Car finder &middot; knows "+memory.userName;
