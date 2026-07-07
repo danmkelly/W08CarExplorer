@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>W08 Car Explorer - Project Brief for Victor</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0D0D0D;--surface:#1A1A1A;--surface2:#242424;--border:#2E2E2E;
+  --text:#E8E4DD;--text-dim:#8A857C;--accent:#E67E22;--accent-glow:rgba(230,126,34,0.3);
+  --accent2:#3498DB;--accent3:#F1C40F;--font:'Inter',system-ui,-apple-system,sans-serif;
+}
+body{
+  font-family:var(--font);background:var(--bg);color:var(--text);line-height:1.7;
+}
+.page{max-width:1100px;margin:0 auto;padding:60px 24px 80px;display:grid;grid-template-columns:2fr 1fr;gap:40px;align-items:start}
+
+/* Sidebar */
+.page-sidebar{position:sticky;top:24px;display:flex;flex-direction:column;gap:16px}
+.sidebar-cta{display:flex;flex-direction:column;justify-content:center;text-align:center;padding:20px 24px;border-radius:12px;text-decoration:none;font-weight:800;transition:all .2s;box-shadow:0 8px 30px rgba(0,0,0,0.3);flex:1}
+.sidebar-cta-BeepBeep{background:linear-gradient(-45deg,var(--accent),#8B4513,#E67E22,#D35400,#E67E22);background-size:400% 400%;color:#fff;animation:wave-cta 2.5s ease infinite}
+.sidebar-cta-BeepBeep:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(230,126,34,0.5)}
+.sidebar-cta-qa{background:linear-gradient(135deg,#1A1A2A,#2A2A4A);color:#fff;border:2px solid rgba(52,152,219,0.3)}
+.sidebar-cta-qa:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(52,152,219,0.3);border-color:var(--accent2)}
+.sidebar-cta .cta-main{font-size:1.05rem;display:block;margin-bottom:4px;color:#fff}
+.sidebar-cta .cta-sub{font-size:0.7rem;opacity:0.85;font-weight:500;margin-top:4px;color:#fff}
+.sidebar-label{font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent);margin-bottom:10px}
+
+/* Hero */
+.hero{text-align:center;padding:60px 0 50px;border-bottom:1px solid var(--border);margin-bottom:50px}
+.hero-icon{font-size:3.5rem;margin-bottom:16px;filter:drop-shadow(0 0 20px rgba(230,126,34,0.4))}
+.hero h1{font-size:2.4rem;font-weight:900;color:#F5E6D3;letter-spacing:-0.5px;margin-bottom:10px}
+.hero h1 span{color:var(--accent3)}
+.hero-sub{font-size:0.95rem;color:var(--text-dim);max-width:600px;margin:0 auto;line-height:1.6}
+
+/* Sections */
+.section{margin-bottom:48px}
+.section-label{font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent);margin-bottom:8px}
+.section h2{font-size:1.5rem;font-weight:800;margin-bottom:16px;color:#F5E6D3}
+.section p{font-size:0.92rem;color:var(--text-dim);margin-bottom:14px;line-height:1.75}
+.section p strong{color:var(--text)}
+
+/* Card grid */
+.card-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px}
+.card{
+  background:var(--surface);border:1px solid var(--border);border-radius:8px;
+  padding:20px;transition:all .2s;
+}
+.card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.card-icon{font-size:1.6rem;margin-bottom:10px}
+.card h4{font-size:0.82rem;font-weight:700;margin-bottom:6px;color:var(--text)}
+.card p{font-size:0.72rem;color:var(--text-dim);line-height:1.5}
+
+/* Tech list */
+.tech-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+.tech-badge{
+  background:var(--surface2);border:1px solid var(--border);color:var(--text);
+  padding:8px 16px;border-radius:20px;font-size:0.78rem;font-weight:600;
+  display:flex;align-items:center;gap:8px;
+}
+.tech-badge-icon{font-size:1rem}
+
+/* Architecture diagram */
+.arch{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;margin-top:20px}
+.arch-flow{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap}
+.arch-node{
+  background:var(--surface2);border:1px solid var(--border);border-radius:8px;
+  padding:14px 20px;text-align:center;font-size:0.78rem;font-weight:600;
+}
+.arch-node.label{background:var(--accent);color:#fff;border-color:var(--accent);font-size:0.7rem}
+.arch-arrow{color:var(--accent3);font-size:1.2rem;font-weight:700}
+.arch-node.small{font-size:0.68rem;padding:10px 14px}
+
+/* CTA */
+.cta{
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  background:linear-gradient(-45deg,var(--accent),#8B4513,#E67E22,#D35400,#E67E22);
+  background-size:400% 400%;
+  color:#fff;padding:20px 40px;border-radius:12px;text-decoration:none;
+  font-weight:800;letter-spacing:0.5px;margin-top:30px;transition:all .2s;
+  box-shadow:0 8px 30px rgba(230,126,34,0.3);
+  animation:wave-cta 2.5s ease infinite;
+}
+.cta-main{font-size:1.1rem}
+.cta-tagline{font-size:0.7rem;font-weight:500;opacity:0.85;font-style:italic;letter-spacing:0.2px}
+.cta:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(230,126,34,0.5)}
+.cta-sub{text-align:center;font-size:0.72rem;color:var(--text-dim);margin-top:8px}
+@keyframes wave-cta{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+
+/* Service stat cards */
+.stat-row{display:flex;gap:12px;margin-top:16px;flex-wrap:wrap}
+.stat-card{
+  background:var(--surface2);border:1px solid var(--border);border-radius:8px;
+  padding:16px 20px;text-align:center;flex:1;min-width:100px;
+}
+.stat-card .stat-value{font-size:1.8rem;font-weight:900;color:var(--accent);display:block}
+.stat-card .stat-label{font-size:0.62rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px}
+
+@media(max-width:700px){
+  .page{grid-template-columns:1fr}
+  .page-sidebar{position:static;display:flex;flex-direction:row;gap:12px;flex-wrap:wrap}
+  .sidebar-cta{flex:1 1 200px}
+  .card-grid{grid-template-columns:1fr}
+  .hero h1{font-size:1.6rem}
+  .arch-flow{flex-direction:column}
+  .arch-arrow{transform:rotate(90deg)}
+}
+</style>
+</head>
+<body>
+<div class="hero" style="max-width:1100px;margin:0 auto;padding:60px 24px 40px;text-align:center;border-bottom:1px solid var(--border);margin-bottom:50px">
+  <div class="hero-icon">&#128663;</div>
+  <h1 style="font-size:2.4rem;font-weight:900;color:#F5E6D3;letter-spacing:-0.5px;margin-bottom:10px">Hi <span style="color:var(--accent3)">Victor</span>! Welcome to the Beep-Beep Car Explorer project.</h1>
+  <p class="hero-sub" style="font-size:0.95rem;color:var(--text-dim);max-width:700px;margin:0 auto;line-height:1.6">This page gives you the context and technical story behind the demo &mdash; what problem it solves, how the MCP pattern works, and where to find the working solution.</p>
+</div>
+<div class="page">
+
+  <div class="page-main">
+
+  <!-- The Business Challenge -->
+  <div class="section">
+    <div class="section-label">The Business Challenge</div>
+    <h2>Finding the right used car in a sea of listings</h2>
+    <p>The used car market is fragmented across <strong>multiple sites</strong>: Craigslist, Autotrader, Facebook Marketplace, Cars.com, and dozens more. Buyers face <strong>thousands of listings</strong> with inconsistent descriptions, varying levels of detail, and no easy way to filter by the features that matter to them. A buyer looking for "a reliable SUV under $20k with good fuel economy and a clean title" might spend hours opening tabs and comparing spreadsheets.</p>
+    <p>The problem: <strong>buyers waste hours filtering manually</strong>: Is this car a good deal? Does it have the features I need? What's the average price for a 2018 Honda CR-V in my area? How does this Toyota compare to that Ford? These repetitive research tasks are a perfect use case for conversational AI.</p>
+    <p>The answer: a friendly, AI-powered car search assistant named <strong>Beep-Beep</strong> that knows every listing, every manufacturer, every feature, and every price point &mdash; straight from a curated Kaggle dataset of ~1200 clean used car listings.</p>
+  </div>
+
+  <!-- The MCP Idea -->
+  <div class="section">
+    <div class="section-label">The MCP Concept</div>
+    <h2>Giving an AI a live tool: the Model Context Protocol pattern</h2>
+    <p>This week's module concept is <strong>MCP &mdash; Model Context Protocol</strong>: giving an LLM access to a live data source so it can answer questions with real, up-to-date information rather than relying on training data alone.</p>
+    <p>For Beep-Beep Car Explorer, the live data source is the <strong>Kaggle Craigslist Vehicles dataset</strong>: originally 447,000 rows of used car listings scraped from Craigslist across the United States. The dataset has been preprocessed down to <strong>~1,200 clean, deduplicated listings</strong>, each with price, year, manufacturer, model, condition, fuel type, transmission, drive type, paint colour, mileage, title status, and location data.</p>
+    <p>When a buyer asks <em>"Show me SUVs under $20k with clean titles"</em>, Beep-Beep fetches the live Kaggle dataset, filters for SUV body types under $20,000 with clean title status, and replies with matched cars, price ranges, and comparison stats. No hard-coded data. No stale listings. <strong>One source of truth.</strong></p>
+
+    <div class="stat-row">
+      <div class="stat-card"><span class="stat-value">1,200</span><span class="stat-label">Clean Listings</span></div>
+      <div class="stat-card"><span class="stat-value">40+</span><span class="stat-label">Manufacturers</span></div>
+      <div class="stat-card"><span class="stat-value">20+</span><span class="stat-label">Features per Car</span></div>
+      <div class="stat-card"><span class="stat-value">447K</span><span class="stat-label">Raw Dataset</span></div>
+    </div>
+  </div>
+
+  <!-- How it works -->
+  <div class="section">
+    <div class="section-label">How Beep-Beep Works</div>
+    <h2>AI-powered car search assistant, grounded in live data</h2>
+
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-icon">&#129302;</div>
+        <h4>Conversational AI</h4>
+        <p>Beep-Beep is powered by <strong>DeepSeek</strong>, a large language model. It understands natural questions like "Find me a pickup truck under 100k miles with 4WD" and responds with accurate, data-backed results drawn from the live Kaggle dataset.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">&#128202;</div>
+        <h4>Live Kaggle Dataset (MCP)</h4>
+        <p>All ~1,200 car listings with price, specs, mileage, and condition data are fetched live from the <strong>Kaggle Craigslist Vehicles dataset</strong> via API. The chatbot queries the data in real time &mdash; no stale listings, no hard-coded inventory. This is the MCP pattern in practice.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">&#128269;</div>
+        <h4>Filter &amp; Compare</h4>
+        <p>Search results surface in an inline <strong>dual-panel view</strong>. The left panel shows matched listings as filterable cards; the right panel displays side-by-side comparison when two cars are selected. Buyers can compare specs, prices, and features in one glance.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Limitations -->
+  <div class="section">
+    <div class="section-label">Limitations &amp; Known Weak Spots</div>
+    <h2>Where Beep-Beep still struggles</h2>
+    <p>Like any real-world AI project, Beep-Beep has rough edges. Here are the honest ones:</p>
+
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-icon">&#128270;</div>
+        <h4>NLP Ambiguity</h4>
+        <p>Beep-Beep uses <strong>keyword matching + LLM disambiguation</strong> to understand whether a user is asking about a specific model, a body type, a price range, or a comparison. Natural language is messy: "truck" might mean pickup, SUV-truck, or commercial vehicle. "Car" could exclude trucks entirely. The <strong>disambiguation gate</strong> asks clarifying questions when confidence is low, but ambiguous automotive terms remain challenging.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">&#128202;</div>
+        <h4>Data Quality Gaps</h4>
+        <p>The Kaggle Craigslist dataset is scraped data with inherent quality issues. <strong>Some listings have missing fields</strong> (no mileage, no VIN, placeholder descriptions). Duplicate listings from the same seller are de-duplicated heuristically but some may slip through. Price outliers (e.g., $1 listings for cars "call for price") have been filtered but the dataset reflects real Craigslist messiness.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">&#9888;</div>
+        <h4>Conversation Context</h4>
+        <p>Beep-Beep maintains conversation history (last 10 exchanges) within the current session, and <strong>persists memory across visits</strong> using browser localStorage &mdash; including your name, recent searches, and favourited cars. On return visits, Beep-Beep greets you personally and references past searches. This memory is <strong>device-only</strong>: no data leaves your browser. A "Clear memory" button lets you wipe it at any time.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">&#127908;</div>
+        <h4>Voice Input Limitations</h4>
+        <p>Voice recognition uses the browser's built-in <strong>Web Speech API</strong>, which varies in accuracy across browsers and devices. Car model names ("Cayenne", "Giulia", "Qashqai"), trim levels ("LX", "EX-L", "SEL Premium"), and technical terms ("all-wheel drive", "continuously variable transmission") are particularly prone to transcription errors. Voice output (TTS) may struggle with automotive terminology and numeric specs.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">&#9200;</div>
+        <h4>No Real-Time Inventory</h4>
+        <p>The dataset represents a <strong>static historical snapshot</strong> from Kaggle, not live Craigslist listings. Cars marked as available may have sold months ago. Prices, locations, and availability do not update. This is appropriate for the academic scope (demonstrating MCP architecture) but a production system would need a live feed or web scraping pipeline.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">&#128187;</div>
+        <h4>No Real Backend</h4>
+        <p>Beep-Beep is a <strong>pure client-side application</strong> with no server-side database, authentication, or persistent favourites. The Cloudflare Worker proxy handles API key security, but all other state is browser-local. This is deliberate for the academic scope but limits production-readiness.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Technical Architecture -->
+  <div class="section">
+    <div class="section-label">Technical Architecture</div>
+    <h2>Secure, serverless, and key-safe</h2>
+    <p>The LLM API (DeepSeek) requires a secret key. This is <strong>never exposed to the browser</strong>. A <strong>Cloudflare Worker</strong> acts as a thin proxy layer: the browser calls the worker, the worker injects the secret key server-side, and the response flows back. The Kaggle dataset is fetched via the Kaggle API (public endpoint for read access). No keys in source code, no keys in DevTools.</p>
+
+    <div class="arch">
+      <div class="arch-flow">
+        <div class="arch-node label">Browser</div>
+        <span class="arch-arrow">&rarr;</span>
+        <div class="arch-node label">Cloudflare Worker</div>
+        <span class="arch-arrow">&rarr;</span>
+        <div class="arch-node">
+          <div>DeepSeek LLM</div>
+          <div style="font-size:0.6rem;color:var(--text-dim);margin-top:2px">Conversational AI</div>
+        </div>
+        <div class="arch-node">
+          <div>Kaggle API</div>
+          <div style="font-size:0.6rem;color:var(--text-dim);margin-top:2px">Car Listings (MCP)</div>
+        </div>
+        <div class="arch-node">
+          <div>localStorage</div>
+          <div style="font-size:0.6rem;color:var(--text-dim);margin-top:2px">Memory + Favourites</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tech-row" style="margin-top:24px">
+      <div class="tech-badge"><span class="tech-badge-icon">&#127760;</span> GitHub Pages</div>
+      <div class="tech-badge"><span class="tech-badge-icon">&#9729;</span> Cloudflare Workers</div>
+      <div class="tech-badge"><span class="tech-badge-icon">&#129302;</span> DeepSeek Chat</div>
+      <div class="tech-badge"><span class="tech-badge-icon">&#128202;</span> Kaggle API</div>
+      <div class="tech-badge"><span class="tech-badge-icon">&#9889;</span> Vanilla JS</div>
+      <div class="tech-badge"><span class="tech-badge-icon">&#127912;</span> Pure CSS</div>
+    </div>
+  </div>
+
+  <!-- Agent Team -->
+  <div class="section">
+    <div class="section-label">Development Approach</div>
+    <h2>Built by a team of AI agent colleagues + MCP tools</h2>
+    <p>The project was developed using a structured team of specialist AI agents, each with a defined role, domain expertise, and boundaries. This mirrors how a real innovation team would operate.</p>
+    <p>The team's design decisions are grounded in <strong>four academic best-practice frameworks</strong> from the Customer Engagement &amp; AI module: the seven-dimension chatbot taxonomy (Adamopoulou &amp; Moussiades 2020), CASA / Computers Are Social Actors (Reeves &amp; Nass 1996), conversation flow anatomy, and Grice's maxims of conversation (Grice 1975). Each specialist agent owns the framework dimensions relevant to their domain.</p>
+    <p style="margin-top:8px;padding:12px 16px;background:rgba(230,126,34,0.08);border:1px solid rgba(230,126,34,0.2);border-radius:8px"><strong style="color:var(--accent)">&#128269; QA Dashboard:</strong> The solution has been assessed against all four frameworks with a full academic design review. <strong>Design score: 4.0/5 (Grade B) &middot; Functional score: 3.5/5 (Grade B-)</strong>. 22 academic findings (A01&ndash;A22) + 16 functional bugs (F01&ndash;F16) &mdash; all resolved. <a href="qa.html" style="color:var(--accent);font-weight:700">View the full QA dashboard &rarr;</a></p>
+
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-icon">&#128270;</div>
+        <h4>@Fionn &mdash; Researcher</h4>
+        <p>Automotive domain expert. Researched the Craigslist Vehicles dataset structure, mapped 40+ manufacturers and 20+ features per listing, and built the knowledge taxonomy that powers Beep-Beep's search recommendations.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">&#127912;</div>
+        <h4>@Siobhan &mdash; Designer</h4>
+        <p>UX designer. Created the dual-panel search+compare layout, the filter chip system for manufacturers/body types/price ranges, the car card design with key specs at a glance, and the amber-on-dark dashboard aesthetic.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">&#128736;</div>
+        <h4>@Dot &mdash; Maker</h4>
+        <p>Chatbot engineer. Built Beep-Beep's conversation engine, the Kaggle MCP integration, intent routing for car search/filter/compare flows, the dual-panel comparison view, and the memory/personalisation system.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">&#128295;</div>
+        <h4>@Niamh &mdash; Backend</h4>
+        <p>Infrastructure engineer. Designed and deployed the Cloudflare Worker proxy that keeps the DeepSeek API key secure on the server side. Configured the Kaggle API data pipeline for MCP retrieval.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">&#128269;</div>
+        <h4>@Keelin &mdash; QA</h4>
+        <p>Quality assurance specialist. Built a comprehensive test plan covering conversation flows, car queries, filter combinations, and edge cases. Scored the solution against all four academic frameworks. <a href="qa.html" style="color:var(--accent);font-weight:600">View QA dashboard &rarr;</a></p>
+      </div>
+      <div class="card">
+        <div class="card-icon">&#128101;</div>
+        <h4>@Cormac &mdash; Manager</h4>
+        <p>Orchestrator and delivery lead. Decomposed tasks, dispatched work to specialists, ran quality gates, and synthesised outputs into the final product. Applied the MCP pattern as the architectural spine.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">&#128663;</div>
+        <h4>@Beep-Beep &mdash; The Bot</h4>
+        <p>The AI car search assistant. Powered by DeepSeek with live Kaggle data enrichment. Friendly, knowledgeable, warm showroom tone. Knows every listing, manufacturer, feature, and price point.</p>
+      </div>
+    </div>
+  </div>
+
+  </div><!-- /.page-main -->
+
+  <div class="page-sidebar">
+    <div class="sidebar-label">Jump to action</div>
+
+    <a class="sidebar-cta sidebar-cta-qa" href="qa.html">
+      <span class="cta-main">&#128269; QA Dashboard</span>
+      <span class="cta-tagline">Design: 4.0/5 (B) &middot; Functional: 3.5/5 (B-)</span>
+    </a>
+
+    <a class="sidebar-cta sidebar-cta-BeepBeep" href="index.html">
+      <span class="cta-main">&#128663; Chat with Beep-Beep</span>
+      <span class="cta-tagline">Find your next car &mdash; search by price, make, model, or features!</span>
+    </a>
+  </div>
+</div>
+
+
+</body>
+</html>
