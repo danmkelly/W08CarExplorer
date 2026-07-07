@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beep-Beep Car Explorer</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0D0D0D;--surface:#1A1A1A;--surface2:#242424;--border:#2E2E2E;
+  --text:#E8E4DD;--text-dim:#8A857C;--accent:#E67E22;--accent-glow:rgba(230,126,34,0.35);
+  --blue:#3498DB;--gold:#F1C40F;--red:#E74C3C;--green:#27AE60;
+  --bubble-bot:#1E1E1E;--bubble-user:#E67E22;
+  --radius:10px;--radius-sm:6px;
+  --font:'Inter',system-ui,-apple-system,sans-serif;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;overflow:hidden}:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:3px}
+.app{display:grid;grid-template-columns:40% 60%;height:calc(100vh - 72px)}
+
+/* Brand bar */
+.app-brand{
+  height:72px;display:flex;align-items:center;gap:16px;
+  background:linear-gradient(180deg,#1A1208 0%,#120D06 35%,#0C0904 65%,#0A0804 100%);border-bottom:3px solid var(--accent);
+  padding:0 24px;position:relative;overflow:hidden;box-shadow:0 2px 20px rgba(0,0,0,0.3);
+}
+.app-brand::before{
+  content:'';position:absolute;top:0;left:0;right:0;bottom:0;
+  background:radial-gradient(ellipse at 50% 70%,rgba(230,126,34,0.25) 0%,transparent 65%);pointer-events:none;
+}
+.app-brand::after{
+  content:'';position:absolute;bottom:0;left:10%;right:10%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(241,196,15,0.5),transparent);
+}
+.brand-icon{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#1A1208,#3D2A0A);position:relative;flex-shrink:0;box-shadow:0 0 20px rgba(230,126,34,0.6),0 0 40px rgba(230,126,34,0.2);display:flex;align-items:center;justify-content:center;font-size:1.6rem}
+.app-brand-text{display:flex;flex-direction:column;gap:2px;min-width:0}
+.app-brand-name{font-size:1.3rem;font-weight:900;color:#F5E6D3;letter-spacing:2.5px;text-transform:uppercase;text-shadow:0 2px 12px rgba(0,0,0,0.5),0 0 30px rgba(230,126,34,0.15)}
+.app-brand-name span{color:var(--accent);text-shadow:0 0 16px var(--accent-glow)}
+.app-brand-tagline{font-size:0.72rem;color:var(--gold);letter-spacing:1px;font-weight:500}
+.app-brand-sub{font-size:0.6rem;color:rgba(241,196,15,0.6);letter-spacing:0.5px;display:flex;gap:16px}
+.app-brand-sub span{white-space:nowrap}
+.brand-info-link{color:var(--accent);cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.brand-info-link:hover{color:#F0A050}
+
+/* CHAT PANEL */
+.chat{display:flex;flex-direction:column;border-right:1px solid var(--border);background:var(--bg);min-height:0}
+.chat-top{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-shrink:0}
+.chat-avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#3D2A0A);display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0}
+.chat-top-info{flex:1;min-width:0}
+.chat-top-info h2{font-size:0.95rem;font-weight:600;color:var(--text)}
+.chat-top-info span{font-size:0.65rem;color:var(--text-dim);display:block}
+.chat-top-right{margin-left:12px;display:flex;flex-direction:column;align-items:stretch;gap:4px;flex-shrink:0}
+.chat-top-badge{font-size:0.7rem;padding:4px 14px;border-radius:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;background:#2A2A2A;color:var(--text-dim);text-align:center;white-space:nowrap}
+.chat-top-badge.live{background:rgba(230,126,34,0.25);color:var(--accent)}
+.chat-clear-btn{font-size:0.62rem;padding:3px 14px;border-radius:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;background:transparent;color:var(--text-dim);border:1px solid var(--border);cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap;text-align:center}
+.chat-clear-btn:hover{color:var(--accent);border-color:var(--accent)}
+.chat-msgs{flex:1 1 0;min-height:0;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:18px;scroll-behavior:smooth}
+.msg{max-width:85%;line-height:1.55;animation:fadeUp .35s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.msg.bot{align-self:flex-start}
+.msg.user{align-self:flex-end}
+.msg.system{align-self:stretch;text-align:center}
+.msg-bubble{padding:13px 18px;border-radius:16px;font-size:0.88rem;line-height:1.6}
+.msg.bot .msg-bubble{background:var(--bubble-bot);color:var(--text);border-bottom-left-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,0.15)}
+.msg.user .msg-bubble{background:var(--bubble-user);color:#fff;border-bottom-right-radius:4px;box-shadow:0 2px 8px rgba(230,126,34,0.3)}
+.msg.system .msg-bubble{background:rgba(52,152,219,0.12);color:#8AB8E0;border:1px solid rgba(52,152,219,0.2);font-size:0.8rem;padding:10px 18px;border-radius:20px;display:inline-block;max-width:90%}
+.msg-meta{font-size:0.62rem;color:var(--text-dim);margin-top:6px;padding:0 6px}
+.msg.user .msg-meta{text-align:right}
+.msg.system .msg-meta{display:none}
+.typing{display:flex;gap:5px;padding:8px 2px}
+.typing span{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:bounce 1.2s infinite;opacity:0.5}
+.typing span:nth-child(2){animation-delay:.2s}
+.typing span:nth-child(3){animation-delay:.4s}
+@keyframes bounce{0%,60%,100%{transform:translateY(0) scale(1);opacity:0.5}30%{transform:translateY(-7px) scale(1.3);opacity:1}}
+.chat-sugg{display:flex;flex-wrap:wrap;gap:6px}
+.chat-sugg-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text-dim);padding:7px 14px;border-radius:20px;font-size:0.78rem;cursor:pointer;transition:all .15s;font-family:inherit}
+.chat-sugg-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.chat-link{color:var(--accent);cursor:pointer;text-decoration:underline;text-underline-offset:2px;font-weight:600}
+.chat-link:hover{color:#F0A050}
+.chat-input-wrap{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:10px;background:var(--surface);flex-shrink:0}
+.chat-input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:24px;padding:10px 18px;font-size:0.88rem;outline:none;color:var(--text);font-family:inherit;transition:border-color .15s;overflow-x:auto;white-space:nowrap}
+.chat-input::placeholder{color:var(--text-dim)}
+.chat-input:focus{border-color:var(--accent)}
+.chat-send{width:42px;height:42px;border-radius:50%;background:var(--accent);color:#fff;border:none;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
+.chat-send:hover{background:#D4701A;transform:scale(1.05)}
+.chat-mic{width:42px;height:42px;border-radius:50%;background:var(--surface2);color:var(--text-dim);border:1px solid var(--border);cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
+.chat-mic:hover{color:var(--text);border-color:var(--text-dim)}
+.chat-mic.listening{background:var(--red);color:#fff;border-color:var(--red);animation:pulse-ring 1.2s ease-in-out infinite}
+@keyframes pulse-ring{0%,100%{box-shadow:0 0 0 0 rgba(231,76,60,0.5)}50%{box-shadow:0 0 0 12px rgba(231,76,60,0)}}
+.msg-speak{display:inline-flex;width:22px;height:22px;border-radius:50%;background:transparent;color:var(--text-dim);border:none;cursor:pointer;font-size:0.7rem;align-items:center;justify-content:center;vertical-align:middle;margin-left:2px;transition:all .15s;opacity:0.45}
+.msg-speak:hover,.msg-speak.speaking{opacity:1}
+.msg-speak:hover{color:var(--accent)}
+.msg-speak.speaking{color:var(--accent);animation:pulse-ring 0.8s ease-in-out infinite}
+.chat-human-ramp{padding:12px 20px;text-align:center;font-size:0.78rem;color:var(--text-dim);flex-shrink:0;cursor:pointer;transition:all .2s;border-top:1px solid rgba(241,196,15,0.15);background:linear-gradient(180deg,rgba(241,196,15,0.06),rgba(241,196,15,0.02));font-weight:500;letter-spacing:0.3px}
+.chat-human-ramp:hover{color:#F5E6D3;background:rgba(241,196,15,0.12);border-top-color:rgba(241,196,15,0.3)}
+.human-ramp-icon{font-size:1rem;vertical-align:middle;margin-right:4px}
+.human-ramp-cta{color:var(--gold);text-decoration:underline;font-weight:700}
+
+/* Loading overlay */
+.loading-overlay{position:absolute;inset:0;background:rgba(8,8,8,0.96);display:none;align-items:center;justify-content:center;z-index:10;flex-direction:column;gap:16px;backdrop-filter:blur(10px)}
+.loading-overlay.active{display:flex}
+.loading-wheel{width:60px;height:60px;position:relative}
+.loading-wheel::after{content:'';position:absolute;inset:0;border:4px solid var(--accent);border-top-color:transparent;border-radius:50%;animation:wheelSpin 0.8s linear infinite;box-shadow:0 0 15px var(--accent-glow),inset 0 0 15px var(--accent-glow)}
+.loading-wheel-spoke{position:absolute;top:50%;left:50%;width:2px;height:16px;background:var(--accent);transform-origin:bottom center;animation:spokePulse 1.2s ease-in-out infinite;border-radius:1px}
+.loading-wheel-spoke:nth-child(2){transform:rotate(72deg) translateY(-4px);animation-delay:.2s}
+.loading-wheel-spoke:nth-child(3){transform:rotate(144deg) translateY(-4px);animation-delay:.4s}
+.loading-wheel-spoke:nth-child(4){transform:rotate(216deg) translateY(-4px);animation-delay:.6s}
+.loading-wheel-spoke:nth-child(5){transform:rotate(288deg) translateY(-4px);animation-delay:.8s}
+@keyframes wheelSpin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+@keyframes spokePulse{0%,100%{opacity:0.3}50%{opacity:1}}
+.loading-text{color:var(--accent);font-size:0.85rem;letter-spacing:0.8px;font-weight:600;animation:pulse-text 1.5s ease-in-out infinite;text-shadow:0 0 12px var(--accent-glow)}@keyframes pulse-text{0%,100%{opacity:0.35}50%{opacity:1}}.loading-dots{display:flex;gap:6px;margin-top:2px}.loading-dots span{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:dotBounce 1.4s ease-in-out infinite;opacity:0.35}.loading-dots span:nth-child(2){animation-delay:.2s}.loading-dots span:nth-child(3){animation-delay:.4s}@keyframes dotBounce{0%,80%,100%{opacity:0.35;transform:scale(1)}40%{opacity:1;transform:scale(1.5)}}
+
+/* RESULTS PANEL */
+.results{background:var(--surface);overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;position:relative}
+.results::-webkit-scrollbar{width:4px}
+.results::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+.r-empty{flex:1;display:flex;align-items:center;justify-content:center;padding:40px 24px;text-align:center}
+.r-empty-inner{max-width:340px}
+.r-empty-icon{font-size:3rem;margin-bottom:12px;opacity:0.5}
+.r-empty h3{font-size:0.9rem;font-weight:600;margin-bottom:6px;color:var(--text-dim)}
+.r-empty p{font-size:0.78rem;color:var(--text-dim);line-height:1.5}
+.r-sugg{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:16px}
+.r-sugg-chip{background:var(--surface2);border:1px solid var(--border);color:var(--text-dim);padding:8px 16px;border-radius:20px;font-size:0.75rem;cursor:pointer;transition:all .15s;font-family:inherit}
+.r-sugg-chip:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* Filter bar */
+.filter-bar{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;flex-shrink:0;background:var(--surface);position:sticky;top:0;z-index:5}
+.filter-section{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
+.filter-label{font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-dim);white-space:nowrap}
+.filter-input{background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;font-size:0.68rem;color:var(--text);font-family:inherit;width:80px;outline:none;transition:border-color .15s;text-align:center}
+.filter-input:focus{border-color:var(--accent)}
+.filter-input::placeholder{color:var(--text-dim);font-size:0.6rem}
+.filter-select{background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:6px 26px 6px 10px;font-size:0.68rem;color:var(--text);font-family:inherit;outline:none;transition:border-color .15s;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238A857C' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center}
+.filter-select:focus{border-color:var(--accent)}
+.filter-chip{padding:6px 12px;border-radius:14px;font-size:0.66rem;font-weight:600;cursor:pointer;transition:all .2s cubic-bezier(.4,0,.2,1);font-family:inherit;border:1.5px solid var(--border);background:var(--surface2);color:var(--text-dim);min-height:30px;display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
+.filter-chip:hover{border-color:var(--accent);color:var(--text);transform:translateY(-1px)}
+.filter-chip.active{color:#fff;border-color:var(--accent);box-shadow:0 0 12px var(--accent-glow)}
+.filter-chip.fuel-gas.active{background:#C0392B;border-color:#C0392B;box-shadow:0 0 12px rgba(192,57,43,0.35)}
+.filter-chip.fuel-diesel.active{background:#7D8C4D;border-color:#7D8C4D;box-shadow:0 0 12px rgba(125,140,77,0.35)}
+.filter-chip.fuel-electric.active{background:#27AE60;border-color:#27AE60;box-shadow:0 0 12px rgba(39,174,96,0.35)}
+.filter-chip.fuel-hybrid.active{background:#3498DB;border-color:#3498DB;box-shadow:0 0 12px rgba(52,152,219,0.35)}
+.filter-chip.fuel-other.active{background:#7F8C8D;border-color:#7F8C8D;box-shadow:0 0 12px rgba(127,140,141,0.35)}
+.filter-results{font-size:0.65rem;color:var(--text-dim);margin-left:auto;white-space:nowrap;background:var(--surface2);padding:4px 12px;border-radius:10px;font-weight:600;border:1px solid var(--border)}
+.filter-clear-btn{padding:6px 14px;border-radius:14px;font-size:0.65rem;font-weight:600;cursor:pointer;font-family:inherit;border:1.5px dashed rgba(231,76,60,0.35);background:transparent;color:var(--red);transition:all .2s cubic-bezier(.4,0,.2,1);white-space:nowrap}.filter-clear-btn:hover{background:rgba(231,76,60,0.12);border-color:var(--red);border-style:solid}
+.filter-divider{width:1px;height:20px;background:var(--border);margin:0 2px;align-self:center}
+
+/* Car cards */
+.car-grid-wrap{flex:1;overflow-y:auto;padding:12px 16px 20px}
+.car-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.car-card{background:var(--surface2);border-radius:10px;padding:14px;cursor:pointer;transition:all .3s cubic-bezier(.4,0,.2,1);border:1px solid transparent;position:relative;overflow:hidden}
+.car-card:hover{border-color:var(--accent);transform:translateY(-4px);box-shadow:0 10px 28px rgba(0,0,0,0.35);background:linear-gradient(145deg,var(--surface2) 60%,rgba(230,126,34,0.1) 100%)}
+.car-card.expanded{border-color:var(--accent);box-shadow:0 10px 28px rgba(0,0,0,0.35);background:linear-gradient(145deg,var(--surface2) 60%,rgba(230,126,34,0.06) 100%)}
+.car-card-type-icon{font-size:1.6rem;margin-bottom:4px}
+.car-card-name{font-size:0.88rem;font-weight:700;color:var(--text);line-height:1.2;margin-bottom:6px;letter-spacing:0.2px}
+.car-card-name .car-year{color:var(--blue);margin-right:4px;font-weight:800}
+.car-card-price{font-size:1.3rem;font-weight:800;color:var(--accent);text-shadow:0 0 10px var(--accent-glow);margin-bottom:8px}
+.car-card-badges{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px}
+.car-badge{font-size:0.58rem;padding:3px 8px;border-radius:6px;font-weight:600;letter-spacing:0.2px;background:rgba(255,255,255,0.07);color:var(--text-dim);white-space:nowrap}
+.car-condition-badge{font-size:0.58rem;padding:3px 8px;border-radius:6px;font-weight:700;letter-spacing:0.3px;text-transform:uppercase;margin-bottom:6px;display:inline-block}
+.car-condition-badge.excellent,.car-condition-badge.like{background:rgba(39,174,96,0.2);color:var(--green)}
+.car-condition-badge.good{background:rgba(52,152,219,0.2);color:var(--blue)}
+.car-condition-badge.fair{background:rgba(241,196,15,0.2);color:var(--gold)}
+.car-condition-badge.salvage{background:rgba(231,76,60,0.2);color:var(--red)}
+.car-condition-badge.new{background:rgba(39,174,96,0.3);color:#2ECC71}
+.car-card-location{font-size:0.6rem;color:var(--text-dim);margin-top:4px}
+.car-details{max-height:0;overflow:hidden;opacity:0;margin-top:0;font-size:0.65rem;color:var(--text-dim);line-height:1.6;padding-top:0;border-top:0 solid transparent;transition:max-height .35s cubic-bezier(.4,0,.2,1),opacity .3s ease,margin .3s ease,padding .3s ease,border .3s ease}
+.car-card.expanded .car-details{max-height:250px;opacity:1;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+.car-details strong{color:var(--text);font-weight:600}
+.car-details .car-detail-row{display:flex;justify-content:space-between;padding:2px 0}
+.car-details .car-detail-row span:first-child{color:var(--text-dim)}.car-details .car-detail-row span:last-child{color:var(--text);font-weight:500}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);display:none;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(6px)}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:28px;width:90%;max-width:500px;animation:fadeUp .3s cubic-bezier(.4,0,.2,1);max-height:90vh;overflow-y:auto}
+.modal h3{font-size:1.05rem;margin-bottom:16px;color:var(--text);font-weight:700}
+.modal p,.modal li{font-size:0.8rem;color:var(--text-dim);line-height:1.6}
+.modal ul{padding-left:18px}
+.modal li{margin-bottom:6px}
+.modal-btns{display:flex;gap:12px;margin-top:22px}
+.modal-btn{padding:12px 22px;border-radius:8px;font-size:0.82rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s cubic-bezier(.4,0,.2,1)}
+.modal-btn-submit{flex:1;background:var(--accent);color:#fff;border:none;box-shadow:0 2px 8px rgba(230,126,34,0.3)}
+.modal-btn-submit:hover{background:#D4701A;transform:translateY(-1px);box-shadow:0 4px 12px rgba(230,126,34,0.4)}
+
+/* Footer */
+.foot{padding:10px 20px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:center;gap:12px;font-size:0.62rem;color:var(--text-dim);background:var(--surface)}
+.foot a{color:var(--text-dim);text-decoration:none}
+.foot a:hover{color:var(--text)}
+
+@media(max-width:768px){
+  body{overflow:hidden;display:flex;flex-direction:column;height:100vh}
+  .app-brand{height:56px;padding:0 12px;gap:10px;flex-shrink:0}
+  .brand-icon{width:36px;height:36px;font-size:1.2rem}
+  .app-brand-name{font-size:0.95rem;letter-spacing:1px}
+  .app-brand-tagline{display:none}
+  .app-brand-sub{display:none}
+  .app{display:flex;flex-direction:column;flex:1 1 0;min-height:0;height:auto}
+  .chat{flex:1 1 0;min-height:0;border-right:none}
+  .results{flex:1 1 0;min-height:0;position:relative;z-index:1;overflow-y:hidden;border-top:1px solid var(--border);max-height:none;border-radius:0;transform:none;transition:none;box-shadow:none}
+  .results .r-empty,.results #rContent{overflow-y:auto;flex:1;min-height:0}
+  .car-grid{grid-template-columns:repeat(2,1fr);gap:10px}
+  .car-card{padding:14px}
+  .filter-bar{padding:10px 14px;gap:5px 6px}
+  .filster-chip{padding:8px 12px;min-height:38px;font-size:0.66rem}
+  .filter-results{padding:5px 10px}
+  .filter-clear-btn{padding:8px 12px;min-height:38px}
+  .car-grid-wrap{padding:10px 14px 14px}
+  .chat-top{padding:12px 16px}
+  .chat-msgs{padding:14px;gap:14px}
+  .chat-input-wrap{padding:12px 16px}
+  .chat-send{width:44px;height:44px}
+  .chat-mic{width:44px;height:44px}
+  .chat-input{padding:12px 18px;min-height:44px}
+  .chat-sugg-btn{padding:9px 16px}
+  .r-sugg-chip{padding:10px 16px}
+  .foot{padding:8px 14px;font-size:0.58rem;gap:8px;flex-shrink:0}
+}
+@media(max-width:500px){
+  .app-brand{height:52px;padding:0 10px;gap:8px}
+  .brand-icon{width:32px;height:32px;font-size:1rem}
+  .app-brand-name{font-size:0.85rem}
+  .car-grid{grid-template-columns:1fr;gap:10px}
+  .car-card{padding:16px}
+  .chat-top{padding:10px 14px}
+  .filter-bar{gap:4px 5px}
+  .filter-chip{padding:7px 10px;min-height:36px;font-size:0.64rem}
+  .msg-bubble{padding:12px 14px;font-size:0.85rem}
+  .modal{padding:18px}
+}
+</style>
+</head>
+<body>
+<div class="app-brand">
+  <div class="brand-icon">&#128663;</div>
+  <div class="app-brand-text">
+    <span class="app-brand-name">Beep-Beep <span>Car</span> Explorer</span>
+    <span class="app-brand-tagline">Find your perfect ride &bull; 1,200 cars across 40+ makes</span>
+    <div class="app-brand-sub"><span>&#128663; Sedans &bull; SUVs &bull; Trucks &bull; Coupes &bull; EVs</span><span>AI-Powered Search</span><span class="brand-info-link" onclick="showMemInfo()">What I store</span></div>
+  </div>
+</div>
+<div class="app">
+
+  <!-- CHAT PANEL -->
+  <div class="chat">
+    <div class="chat-top">
+      <div class="chat-avatar" aria-hidden="true">&#128663;</div>
+      <div class="chat-top-info">
+        <h2>Beep-Beep</h2>
+        <span id="botLabel">Car finder &middot; AI-powered</span>
+      </div>
+      <div class="chat-top-right">
+      <span class="chat-top-badge" id="botBadge" role="status" aria-live="polite">basic</span>
+      <button class="chat-clear-btn" id="clearMemBtn" onclick="clearMemory()" title="Clear what Beep-Beep remembers" aria-label="Clear memory" style="display:none">Clear memory</button>
+      <button class="chat-clear-btn" id="rememberBtn" onclick="rememberMe()" title="Let Beep-Beep remember you" aria-label="Remember me" style="display:none">Remember me</button>
+      </div>
+    </div>
+    <div class="chat-msgs" id="chatMessages" role="log" aria-live="polite" aria-label="Chat messages"></div>
+    <div class="chat-input-wrap">
+      <input class="chat-input" id="chatInput" placeholder="Ask Beep-Beep about cars... e.g. 'Show me SUVs under $25k'" aria-label="Type your message" autofocus>
+      <button class="chat-mic" id="chatMic" aria-label="Voice input" title="Talk to Beep-Beep">&#127908;</button>
+      <button class="chat-send" id="chatSend" aria-label="Send message">&#8594;</button>
+    </div>
+    <div class="chat-human-ramp" onclick="showHuman()">
+      <span class="human-ramp-icon">&#128100;</span> Prefer a real human? <span class="human-ramp-cta">Click here</span> for our contact details
+    </div>
+  </div>
+
+  <!-- RESULTS PANEL -->
+  <div class="results" id="results">
+    <div class="loading-overlay" id="loadingOverlay">
+      <div class="loading-wheel">
+        <div class="loading-wheel-spoke"></div>
+        <div class="loading-wheel-spoke"></div>
+        <div class="loading-wheel-spoke"></div>
+        <div class="loading-wheel-spoke"></div>
+        <div class="loading-wheel-spoke"></div>
+      </div>
+      <div class="loading-text">Loading 1,200 cars...</div>
+      <div class="loading-dots"><span></span><span></span><span></span></div>
+    </div>
+    <div class="r-empty" id="rEmpty">
+      <div class="r-empty-inner">
+        <div class="r-empty-icon">&#128663;</div>
+        <h3>Your Car Explorer</h3>
+        <p>Ask Beep-Beep about any make, model, or budget. He'll pull up matching cars from our catalogue of 1,200 vehicles across 40+ manufacturers.</p>
+        <div class="r-sugg">
+          <span class="r-sugg-chip" onclick="qa('Show me SUVs under $30,000')">&#128665; SUVs under $30k</span>
+          <span class="r-sugg-chip" onclick="qa('Find electric cars from 2018 or newer')">&#9889; Electric cars</span>
+          <span class="r-sugg-chip" onclick="qa('Toyota sedans under 50k miles')">&#128663; Toyota sedans</span>
+          <span class="r-sugg-chip" onclick="qa('Trucks with 4WD')">&#128763; 4WD Trucks</span>
+          <span class="r-sugg-chip" onclick="qa('Convertibles under $40k')">&#127950; Convertibles</span>
+          <span class="r-sugg-chip" onclick="qa('BMW or Audi from 2015-2020')">&#127949; BMW & Audi</span>
+        </div>
+      </div>
+    </div>
+    <div id="rContent" style="display:none">
+      <div class="filter-bar" id="filterBar">
+        <span class="filter-label">Price:</span>
+        <input class="filter-input" id="fPriceMin" type="number" placeholder="Min $" onchange="onFilterInput()">
+        <span style="font-size:0.7rem;color:var(--text-dim)">&ndash;</span>
+        <input class="filter-input" id="fPriceMax" type="number" placeholder="Max $" onchange="onFilterInput()">
+        <span class="filter-divider"></span>
+        <span class="filter-label">Year:</span>
+        <input class="filter-input" id="fYearMin" type="number" placeholder="Min" onchange="onFilterInput()">
+        <span style="font-size:0.7rem;color:var(--text-dim)">&ndash;</span>
+        <input class="filter-input" id="fYearMax" type="number" placeholder="Max" onchange="onFilterInput()">
+        <span class="filter-divider"></span>
+        <span class="filter-label">Make:</span>
+        <select class="filter-select" id="fManufacturer" onchange="onFilterInput()">
+          <option value="">All</option>
+        </select>
+        <span class="filter-divider"></span>
+        <span class="filter-label">Fuel:</span>
+        <div class="filter-section" id="fuelChips"></div>
+        <span class="filter-divider"></span>
+        <span class="filter-label">Trans:</span>
+        <div class="filter-section" id="transChips"></div>
+        <span class="filter-divider"></span>
+        <span class="filter-label">Type:</span>
+        <div class="filter-section" id="typeChips"></div>
+        <span class="filter-divider"></span>
+        <span class="filter-label">Drive:</span>
+        <div class="filter-section" id="driveChips"></div>
+        <span class="filter-divider"></span>
+        <span class="filter-label">Color:</span>
+        <div class="filter-section" id="colorChips"></div>
+        <span class="filter-divider"></span>
+        <span class="filter-label">Sort:</span>
+        <select class="filter-select" id="fSort" onchange="onFilterInput()">
+          <option value="">Default</option>
+          <option value="price-asc">Price: Low-High</option>
+          <option value="price-desc">Price: High-Low</option>
+          <option value="year-desc">Year: Newest</option>
+          <option value="year-asc">Year: Oldest</option>
+          <option value="odometer-asc">Mileage: Lowest</option>
+          <option value="odometer-desc">Mileage: Highest</option>
+        </select>
+        <button class="filter-clear-btn" onclick="clearAllFilters()" aria-label="Clear all filters">Clear all</button>
+        <span class="filter-results" id="filterResults"></span>
+      </div>
+      <div class="car-grid-wrap">
+        <div class="car-grid" id="carGrid"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="foot">
+  Beep-Beep Car Explorer &bull; Data from Carvana Used Car Listings &bull; 1,200 cars &bull; MCP Data Pipeline (cars.json) &bull; Built by @Cormac @Fionn @Siobhan @Dot @Niamh @Keelin
+</div>
+
+<!-- MEMORY INFO MODAL -->
+<div class="modal-overlay" id="memInfoModal" onclick="if(event.target===this)this.classList.remove('open')" role="dialog" aria-modal="true" aria-label="Memory information">
+  <div class="modal" style="max-width:460px">
+    <h3>&#128190; What Beep-Beep stores</h3>
+    <p>Beep-Beep remembers a few things to make your car search better -- <strong>all stored on your device</strong>, never sent to a server:</p>
+    <ul>
+      <li>Your name (if you tell him)</li>
+      <li>Cars and makes you've searched for</li>
+      <li>How many times you've visited</li>
+      <li>Your last visit date</li>
+      <li>Your current search filters</li>
+    </ul>
+    <p>This lets Beep-Beep greet you by name, recall past searches, and pick up where you left off. To remove everything, click <strong style="color:var(--accent)">Clear memory</strong> beside Beep-Beep's status badge.</p>
+    <div class="modal-btns"><button class="modal-btn modal-btn-submit" onclick="document.getElementById('memInfoModal').classList.remove('open')">Got it</button></div>
+  </div>
+</div>
+
+<!-- HUMAN CONTACT MODAL -->
+<div class="modal-overlay" id="humanModal" onclick="if(event.target===this)this.classList.remove('open')" role="dialog" aria-modal="true" aria-label="Contact details">
+  <div class="modal" style="max-width:460px">
+    <h3>&#128100; Contact a Car Expert</h3>
+    <p>Beep-Beep is great at browsing, but sometimes you need a real person:</p>
+    <p style="margin-top:12px"><strong style="color:var(--text)">&#128222; Phone:</strong> <span style="color:var(--accent)">+1 800 CAR-DEAL</span><br>
+    <strong>&#9993; Email:</strong> <span style="color:var(--accent)">experts@beepbeepcars.com</span><br>
+    <strong>&#128338; Hours:</strong><br>Mon-Fri: 09:00 - 18:00<br>Sat: 10:00 - 16:00</p>
+    <div class="modal-btns"><button class="modal-btn modal-btn-submit" onclick="document.getElementById('humanModal').classList.remove('open')">Got it</button></div>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script>
+// === API Proxy ===
+var API_PROXY="";
+
+// === Key setup ===
+(function(){
+  if(typeof LLM_KEY==="undefined")window.LLM_KEY="";
+  if(typeof LLM_URL==="undefined")window.LLM_URL="";
+  if(typeof LLM_MODEL==="undefined")window.LLM_MODEL="";
+})(window);
+
+// === Car Data ===
+var allCars=[];
+var filteredCars=[];
+var CARS_DATA_URL="cars.json";
+
+// === Filter State ===
+var filters={
+  priceMin:null,priceMax:null,
+  yearMin:null,yearMax:null,
+  manufacturer:"",
+  fuels:[],
+  transmissions:[],
+  types:[],
+  drives:[],
+  colors:[],
+  sortBy:""
+};
+var lastFilterChatMsg="";
+
+// === State ===
+var conv=[],gibberishCount=0,expectingName=false,expectingConsent=false,expectingHumanBot=false;
+var spokeLast=false,lastBotAsked=false;
+var filterWaiting=false;
+function escHtml(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;")}
+
+// === Car Type Emoji ===
+var CAR_TYPE_EMOJI={
+  "sedan":"🚗","suv":"🚙","truck":"🛻","pickup":"🛻","coupe":"🏎️","convertible":"🏎️",
+  "hatchback":"🚗","wagon":"🚗","van":"🚐","mini-van":"🚐","offroad":"🚙","bus":"🚌","other":"🚗"
+};
+
+// === Memory ===
+var memory={visits:0,lastVisit:"",recentSearches:[],recentMakes:[],userName:"",consent:""};
+function loadMemory(){
+  try{var raw=localStorage.getItem("beepbeep_memory");if(raw){var p=JSON.parse(raw);memory=p}}catch(e){}
+  memory.consent=memory.consent||"";
+  if(memory.consent==="yes"){
+    memory.visits=(memory.visits||0)+1;
+    memory.lastVisit=new Date().toISOString();
+    memory.recentSearches=memory.recentSearches||[];
+    memory.recentMakes=memory.recentMakes||[];
+    memory.userName=memory.userName||"";
+    expectingName=!memory.userName;
+    if(memory.consent==="yes")saveMemory();
+  }else{
+    memory.visits=0;memory.userName="";memory.recentSearches=[];memory.recentMakes=[];
+    expectingName=false;
+  }
+  updateMemoryButtons();
+}
+function saveMemory(){if(memory.consent==="yes")try{localStorage.setItem("beepbeep_memory",JSON.stringify(memory))}catch(e){}}
+function clearMemory(){
+  localStorage.removeItem("beepbeep_memory");
+  memory={visits:0,lastVisit:"",recentSearches:[],recentMakes:[],userName:"",consent:""};
+  expectingName=false;
+  addMsg("All clear! I've forgotten everything about you. Fresh start.",'bot');
+  updateMemoryButtons();
+}
+function rememberMe(){
+  memory.consent="yes";saveMemory();expectingName=true;
+  addMsg("Sound! I'll remember you from now on. What should I call you?",'bot');
+  updateMemoryButtons();
+}
+function updateMemoryButtons(){
+  var clr=document.getElementById("clearMemBtn"),rem=document.getElementById("rememberBtn");
+  if(!clr||!rem)return;
+  if(memory.consent==="yes"){clr.style.display="";rem.style.display="none"}
+  else if(memory.consent==="no"){clr.style.display="none";rem.style.display=""}
+  else{clr.style.display="none";rem.style.display="none"}
+}
+function showMemInfo(){document.getElementById("memInfoModal").classList.add("open")}
+
+// === DOM ===
+var chatMsgs=document.getElementById("chatMessages");
+var chatInput=document.getElementById("chatInput");
+var rEmpty=document.getElementById("rEmpty");
+var rContent=document.getElementById("rContent");
+var carGrid=document.getElementById("carGrid");
+var filterResults=document.getElementById("filterResults");
+
+function sc(){chatMsgs.scrollTop=chatMsgs.scrollHeight}
+function addMsg(t,s){
+  var d=document.createElement("div");d.className="msg "+s;
+  var now=new Date();var time=now.getHours().toString().padStart(2,"0")+":"+now.getMinutes().toString().padStart(2,"0");
+  if(s==="user")t=escHtml(t);
+  d.innerHTML='<div class="msg-bubble">'+(s==="bot"?enrichLinks(t):t)+'</div><div class="msg-meta">'+(s==="bot"?"Beep-Beep":s==="user"?"You":"System")+' &middot; '+time+(s==="bot"?' <button class="msg-speak" onclick="speakMsg(this)" title="Listen">&#128266;</button>':'')+'</div>';
+  chatMsgs.appendChild(d);sc();
+  if(spokeLast&&s==="bot"){spokeLast=false;setTimeout(function(){var btn=d.querySelector(".msg-speak");if(btn)speakMsg(btn)},150)}
+}
+function addSugg(arr){
+  var d=document.createElement("div");d.className="msg bot";
+  var wrap=document.createElement("div");wrap.className="chat-sugg";
+  arr.forEach(function(x){
+    var btn=document.createElement("span");
+    btn.className="chat-sugg-btn";btn.tabIndex=0;btn.setAttribute("role","button");
+    btn.textContent=x;
+    btn.addEventListener("click",function(){qa(x)});
+    btn.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();qa(x)}});
+    wrap.appendChild(btn);
+  });
+  d.appendChild(wrap);
+  chatMsgs.appendChild(d);sc();
+}
+function showTyping(){var d=document.createElement("div");d.className="msg bot";d.innerHTML='<div class="msg-bubble"><div class="typing"><span></span><span></span><span></span></div></div>';d.id="t";chatMsgs.appendChild(d);sc()}
+function hideTyping(){var e=document.getElementById("t");if(e)e.remove()}
+function qa(t){chatInput.value=t;send()}
+
+// === Voice STT ===
+var micBtn=document.getElementById("chatMic");
+var recognition=null;
+if("webkitSpeechRecognition" in window||"SpeechRecognition" in window){
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  recognition=new SR();
+  recognition.continuous=false;recognition.interimResults=true;recognition.lang="en-US";
+  recognition.onresult=function(e){
+    var transcript="";
+    for(var i=e.resultIndex;i<e.results.length;i++)transcript+=e.results[i][0].transcript;
+    chatInput.value=transcript;
+    if(e.results[0].isFinal){micBtn.classList.remove("listening");spokeLast=true;send()}
+  };
+  recognition.onerror=function(e){micBtn.classList.remove("listening");if(e.error==="not-allowed")addMsg("Microphone access was denied. Check your browser permissions.",'bot')};
+  recognition.onend=function(){micBtn.classList.remove("listening")};
+}
+if(!recognition)micBtn.style.display="none";
+micBtn.onclick=function(){
+  if(!recognition)return;
+  if(micBtn.classList.contains("listening")){recognition.stop();micBtn.classList.remove("listening")}
+  else{try{recognition.start();micBtn.classList.add("listening")}catch(ex){micBtn.classList.remove("listening")}}
+};
+
+// === Voice TTS ===
+function speakMsg(btn){
+  if(window.speechSynthesis.speaking){window.speechSynthesis.cancel();document.querySelectorAll(".msg-speak.speaking").forEach(function(b){b.classList.remove("speaking")});return}
+  var bubble=btn.closest(".msg").querySelector(".msg-bubble");
+  var text=(bubble.textContent||bubble.innerText).trim();
+  document.querySelectorAll(".msg-speak.speaking").forEach(function(b){b.classList.remove("speaking")});
+  btn.classList.add("speaking");
+  function doSpeak(t){
+    var u=new SpeechSynthesisUtterance(t);u.lang="en-IE";u.rate=1.0;u.pitch=1.0;
+    var voices=window.speechSynthesis.getVoices();
+    if(voices.length>0){
+      var ranked=voices.filter(function(v){return v.lang.indexOf("en")===0});
+      var prefs=["moira","fiona","daniel","marcus","alex"];
+      var best=null;
+      ranked.forEach(function(v){
+        var s=0;var n=v.name.toLowerCase();
+        if(v.lang==="en-IE")s=10;else if(v.lang==="en-GB")s=7;else s=3;
+        prefs.forEach(function(p,i){if(n.indexOf(p)>-1)s+=5-i});
+        if(!best||s>best._score){v._score=s;best=v}
+      });
+      if(best)u.voice=best;
+    }
+    u.onend=function(){btn.classList.remove("speaking")};
+    u.onerror=function(){btn.classList.remove("speaking")};
+    window.speechSynthesis.speak(u);
+  }
+  if(window.speechSynthesis.getVoices().length===0){
+    var voiceTimeout=setTimeout(function(){btn.classList.remove("speaking");doSpeak(text)},4000);
+    window.speechSynthesis.onvoiceschanged=function(){window.speechSynthesis.onvoiceschanged=null;clearTimeout(voiceTimeout);doSpeak(text)};
+  }else{doSpeak(text)}
+}
+
+// === Link Enrichment ===
+var knownNames=[];
+function enrichLinks(html){
+  if(!knownNames.length||html.indexOf("chat-link")>-1)return html;
+  var names=knownNames.slice().sort(function(a,b){return b.length-a.length});
+  names.forEach(function(n){
+    if(!n||n.length<2)return;
+    var rx=new RegExp('(^|\\s|>)('+n.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')(?=[\\s,.\!?;:<]|$)','gi');
+    html=html.replace(rx,function(m,p1,p2){return p1+'<span class="chat-link" data-query="'+p2.replace(/"/g,'&quot;').replace(/'/g,'&#39;')+'">'+p2+'</span>'});
+  });
+  return html;
+}
+
+// === Car Data Fetch ===
+async function fetchCars(retries){
+  retries=retries||2;
+  document.getElementById("loadingOverlay").classList.add("active");
+  for(var attempt=0;attempt<=retries;attempt++){
+    try{
+      var r=await fetch(CARS_DATA_URL);
+      if(!r.ok)throw new Error("HTTP "+r.status);
+      allCars=await r.json();
+      filteredCars=allCars.slice();
+      document.getElementById("loadingOverlay").classList.remove("active");
+      buildFilterOptions();
+      return true;
+    }catch(e){
+      if(attempt===retries){
+        document.getElementById("loadingOverlay").classList.remove("active");
+        addMsg("I'm having trouble loading the car catalogue right now. Please try refreshing the page, or type <strong>human</strong> to speak to our team.",'bot');
+        return false;
+      }
+      await new Promise(function(res){setTimeout(res,Math.pow(2,attempt)*1000)});
+    }
+  }
+}
+
+function buildFilterOptions(){
+  var makes=[];var seenMakes={};
+  allCars.forEach(function(c){if(!seenMakes[c.manufacturer]){seenMakes[c.manufacturer]=true;makes.push(c.manufacturer)}});
+  makes.sort();
+  var sel=document.getElementById("fManufacturer");
+  sel.innerHTML='<option value="">All</option>'+makes.map(function(m){return'<option value="'+m+'">'+m.charAt(0).toUpperCase()+m.slice(1)+'</option>'}).join("");
+
+  buildChipSet("fuelChips","fuels","Fuel",["gas","diesel","electric","hybrid","other"],{"gas":"⛽","diesel":"🛢️","electric":"⚡","hybrid":"🔋","other":"🔧"},"fuel-");
+  buildChipSet("transChips","transmissions","Trans",["automatic","manual","other"],{"automatic":"🅰️","manual":"🅼","other":"⚙️"},"");
+  buildChipSet("typeChips","types","Type",["sedan","suv","truck","pickup","coupe","convertible","hatchback","wagon","van","mini-van","offroad","bus"],CAR_TYPE_EMOJI,"");
+  buildChipSet("driveChips","drives","Drive",["4wd","fwd","rwd"],{"4wd":"🔴","fwd":"🟢","rwd":"🔵"},"");
+  buildChipSet("colorChips","colors","Color",["white","black","silver","gray","blue","red","green","brown","custom","orange","yellow","purple"],{},"");
+}
+
+function buildChipSet(containerId,filterKey,label,options,emojis,prefix){
+  var container=document.getElementById(containerId);
+  container.innerHTML=options.map(function(opt){
+    var emoji=emojis[opt]||"";
+    var cls=prefix+opt.replace(/\s+/g,'-');
+    return'<button class="filter-chip '+cls+'" data-val="'+opt+'" onclick="toggleChip(\''+filterKey+'\',\''+opt+'\',this)" aria-label="Filter by '+label+': '+opt+'">'+(emoji?emoji+' ':'')+opt.charAt(0).toUpperCase()+opt.slice(1)+'</button>';
+  }).join("");
+}
+
+function toggleChip(filterKey,val,btn){
+  var arr=filters[filterKey];
+  var idx=arr.indexOf(val);
+  if(idx>-1){arr.splice(idx,1);btn.classList.remove("active")}
+  else{arr.push(val);btn.classList.add("active")}
+  applyFilters();
+  emitFilterSystemMessage();
+}
+
+function onFilterInput(){
+  var pm=document.getElementById("fPriceMin").value;
+  var px=document.getElementById("fPriceMax").value;
+  var ym=document.getElementById("fYearMin").value;
+  var yx=document.getElementById("fYearMax").value;
+  var man=document.getElementById("fManufacturer").value;
+  var sort=document.getElementById("fSort").value;
+  filters.priceMin=pm?parseInt(pm):null;
+  filters.priceMax=px?parseInt(px):null;
+  filters.yearMin=ym?parseInt(ym):null;
+  filters.yearMax=yx?parseInt(yx):null;
+  filters.manufacturer=man;
+  filters.sortBy=sort;
+  applyFilters();
+  emitFilterSystemMessage();
+}
+
+function clearAllFilters(){
+  filters.priceMin=null;filters.priceMax=null;
+  filters.yearMin=null;filters.yearMax=null;
+  filters.manufacturer="";
+  filters.fuels=[];filters.transmissions=[];filters.types=[];filters.drives=[];filters.colors=[];
+  filters.sortBy="";
+  document.getElementById("fPriceMin").value="";
+  document.getElementById("fPriceMax").value="";
+  document.getElementById("fYearMin").value="";
+  document.getElementById("fYearMax").value="";
+  document.getElementById("fManufacturer").value="";
+  document.getElementById("fSort").value="";
+  document.querySelectorAll(".filter-chip").forEach(function(b){b.classList.remove("active")});
+  applyFilters();
+  addSystemMsg("All filters cleared. Showing all "+allCars.length+" cars.");
+}
+
+// === Filter Sync: emit to chat ===
+function emitFilterSystemMessage(){
+  var parts=[];
+  var constraints=[];
+  if(filters.priceMin||filters.priceMax){
+    if(filters.priceMin&&filters.priceMax)parts.push("$"+filters.priceMin.toLocaleString()+" &ndash; $"+filters.priceMax.toLocaleString());
+    else if(filters.priceMin)parts.push("from $"+filters.priceMin.toLocaleString());
+    else parts.push("up to $"+filters.priceMax.toLocaleString());
+    constraints.push("price");
+  }
+  if(filters.yearMin||filters.yearMax){
+    if(filters.yearMin&&filters.yearMax)parts.push(filters.yearMin+"&ndash;"+filters.yearMax);
+    else if(filters.yearMin)parts.push(filters.yearMin+" or newer");
+    else parts.push(filters.yearMax+" or older");
+    constraints.push("year");
+  }
+  if(filters.manufacturer){parts.push(ucfirst(filters.manufacturer));constraints.push("make")}
+  if(filters.fuels.length){parts.push(filters.fuels.map(ucfirst).join(", "));constraints.push("fuel")}
+  if(filters.types.length){parts.push(filters.types.map(ucfirst).join(", "));constraints.push("type")}
+  if(filters.transmissions.length){parts.push(filters.transmissions.map(ucfirst).join(", "));constraints.push("transmission")}
+  if(filters.drives.length){parts.push(filters.drives.map(function(d){return d.toUpperCase()}).join(", "));constraints.push("drive")}
+  if(filters.colors.length){parts.push(filters.colors.map(ucfirst).join(", "));constraints.push("color")}
+  var msg="Filters updated";
+  if(parts.length>0)msg+=": "+parts.join(", ");
+  msg+=" ("+filteredCars.length+" car"+(filteredCars.length!==1?"s":"")+" found)";
+  addSystemMsg(msg);
+}
+function ucfirst(s){return s.charAt(0).toUpperCase()+s.slice(1)}
+function addSystemMsg(txt){
+  var d=document.createElement("div");d.className="msg system";
+  d.innerHTML='<div class="msg-bubble">'+txt+'</div>';
+  chatMsgs.appendChild(d);sc();
+}
+
+// === Car Filtering ===
+function applyFilters(){
+  filteredCars=allCars.filter(function(c){
+    if(filters.priceMin!==null&&c.price<filters.priceMin)return false;
+    if(filters.priceMax!==null&&c.price>filters.priceMax)return false;
+    if(filters.yearMin!==null&&c.year<filters.yearMin)return false;
+    if(filters.yearMax!==null&&c.year>filters.yearMax)return false;
+    if(filters.manufacturer&&c.manufacturer!==filters.manufacturer)return false;
+    if(filters.fuels.length&&filters.fuels.indexOf(c.fuel)===-1)return false;
+    if(filters.transmissions.length&&filters.transmissions.indexOf(c.transmission)===-1)return false;
+    if(filters.types.length&&filters.types.indexOf(c.type)===-1)return false;
+    if(filters.drives.length&&filters.drives.indexOf(c.drive)===-1)return false;
+    if(filters.colors.length&&filters.colors.indexOf(c.paint_color)===-1)return false;
+    return true;
+  });
+  if(filters.sortBy){
+    var parts=filters.sortBy.split("-");
+    var field=parts[0];var dir=parts[1];
+    filteredCars.sort(function(a,b){
+      var va=field==="odometer"?parseInt(a[field])||0:a[field];
+      var vb=field==="odometer"?parseInt(b[field])||0:b[field];
+      if(va<vb)return dir==="asc"?-1:1;
+      if(va>vb)return dir==="asc"?1:-1;
+      return 0;
+    });
+  }
+  renderCars();
+  updateFilterUI();
+}
+
+function updateFilterUI(){
+  filterResults.textContent=filteredCars.length+" car"+(filteredCars.length!==1?"s":"");
+}
+
+function renderCars(){
+  rEmpty.style.display="none";rContent.style.display="block";
+  carGrid.innerHTML=filteredCars.map(function(c,i){
+    var icon=CAR_TYPE_EMOJI[c.type]||"🚗";
+    var condCls=S(c.condition).replace(/\s+/g,'-');
+    var odo=parseInt(c.odometer)||0;
+    var odoStr=odo>=1000?Math.round(odo/1000).toLocaleString()+"k miles":odo+" miles";
+    var location=trucateState(c.state);
+    return'<div class="car-card" id="cc'+i+'" onclick="toggleCarCard('+i+')">'+
+      '<div class="car-card-type-icon">'+icon+'</div>'+
+      '<div class="car-card-name"><span class="car-year">'+c.year+'</span> '+escHtml(ucfirst(c.manufacturer))+' '+escHtml(c.model.charAt(0).toUpperCase()+c.model.slice(1))+'</div>'+
+      '<div class="car-card-price">$'+c.price.toLocaleString()+'</div>'+
+      '<span class="car-condition-badge '+condCls+'">'+escHtml(c.condition)+'</span>'+
+      '<div class="car-card-badges">'+
+        '<span class="car-badge">📏 '+odoStr+'</span>'+
+        '<span class="car-badge">⛽ '+escHtml(c.fuel.charAt(0).toUpperCase()+c.fuel.slice(1))+'</span>'+
+        '<span class="car-badge">⚙️ '+escHtml(c.transmission.charAt(0).toUpperCase()+c.transmission.slice(1))+'</span>'+
+        (c.paint_color?'<span class="car-badge">🎨 '+escHtml(ucfirst(c.paint_color))+'</span>':'')+
+        (c.drive?'<span class="car-badge">🔧 '+escHtml(c.drive.toUpperCase())+'</span>':'')+
+      '</div>'+
+      '<div class="car-card-location">📍 '+escHtml(location)+'</div>'+
+      '<div class="car-details">'+
+        '<div class="car-detail-row"><span>ID</span><span>'+escHtml(c.id)+'</span></div>'+
+        '<div class="car-detail-row"><span>Price</span><span>$'+c.price.toLocaleString()+'</span></div>'+
+        '<div class="car-detail-row"><span>Year</span><span>'+c.year+'</span></div>'+
+        '<div class="car-detail-row"><span>Odometer</span><span>'+odo.toLocaleString()+' miles</span></div>'+
+        '<div class="car-detail-row"><span>Condition</span><span>'+escHtml(ucfirst(c.condition))+'</span></div>'+
+        '<div class="car-detail-row"><span>Fuel</span><span>'+escHtml(ucfirst(c.fuel))+'</span></div>'+
+        '<div class="car-detail-row"><span>Transmission</span><span>'+escHtml(ucfirst(c.transmission))+'</span></div>'+
+        (c.drive?'<div class="car-detail-row"><span>Drive</span><span>'+escHtml(c.drive.toUpperCase())+'</span></div>':'')+
+        (c.paint_color?'<div class="car-detail-row"><span>Color</span><span>'+escHtml(ucfirst(c.paint_color))+'</span></div>':'')+
+        (c.cylinders?'<div class="car-detail-row"><span>Cylinders</span><span>'+escHtml(c.cylinders)+'</span></div>':'')+
+        '<div class="car-detail-row"><span>Title</span><span>'+escHtml(ucfirst(c.title_status))+'</span></div>'+
+        (c.size?'<div class="car-detail-row"><span>Size</span><span>'+escHtml(c.size)+'</span></div>':'')+
+      '</div>'+
+    '</div>';
+  }).join("")||'<div style="text-align:center;padding:40px;color:var(--text-dim);font-size:0.85rem">No cars match your filters. Try adjusting the criteria or clearing filters.</div>';
+  updateFilterUI();
+}
+
+function trucateState(s){
+  if(!s)return "Unknown";
+  if(s.indexOf("Carvana")===0)return "Carvana Certified";
+  return s.length>30?s.slice(0,30)+"...":s;
+}
+
+function toggleCarCard(i){
+  var el=document.getElementById("cc"+i);
+  if(el)el.classList.toggle("expanded");
+}
+
+function S(s){return(s||"").toLowerCase().trim()}
+
+// === Chat-to-Filter Keyword Extraction ===
+function extractKeywords(txt){
+  var t=S(txt);
+  var manufacturers=["acura","alfa-romeo","alfa romeo","audi","bmw","buick","cadillac","chevrolet","chevy","chrysler","dodge","ferrari","fiat","ford","gmc","honda","hyundai","infiniti","jaguar","jeep","kia","lexus","lincoln","mazda","mercedes-benz","mercedes benz","mercedes","mercury","mini","mitsubishi","nissan","pontiac","porsche","ram","rover","subaru","tesla","toyota","volkswagen","vw","volvo"];
+  var fuels=["gas","diesel","electric","hybrid","other"];
+  var transmissions=["automatic","manual","other"];
+  var types=["sedan","suv","truck","pickup","coupe","convertible","hatchback","wagon","van","mini-van","mini van","offroad","bus"];
+  var drives=["4wd","fwd","rwd","four wheel drive","all wheel drive","front wheel drive","rear wheel drive"];
+  var colors=["white","black","silver","gray","grey","blue","red","green","brown","custom","orange","yellow","purple"];
+  var found={manufacturers:[],fuels:[],transmissions:[],types:[],drives:[],colors:[],priceMin:null,priceMax:null,yearMin:null,yearMax:null};
+
+  manufacturers.forEach(function(m){
+    var mclean=m.replace(/[\s-]/g,'');
+    var tclean=t.replace(/[\s-]/g,'');
+    if(t.indexOf(m)>-1||tclean.indexOf(mclean)>-1)found.manufacturers.push(m);
+  });
+  if(t.indexOf("chevy")>-1&&found.manufacturers.indexOf("chevrolet")===-1)found.manufacturers.push("chevrolet");
+  if(t.indexOf("vw")>-1&&found.manufacturers.indexOf("volkswagen")===-1)found.manufacturers.push("volkswagen");
+  if((t.indexOf("benz")>-1||t.indexOf("mercedes")>-1)&&found.manufacturers.indexOf("mercedes-benz")===-1)found.manufacturers.push("mercedes-benz");
+
+  fuels.forEach(function(f){if(t.indexOf(f)>-1)found.fuels.push(f)});
+  if(/\bev\b|\belectric vehicle\b/i.test(t)&&found.fuels.indexOf("electric")===-1)found.fuels.push("electric");
+  transmissions.forEach(function(tr){if(t.indexOf(tr)>-1)found.transmissions.push(tr)});
+  if(/\bauto\b/i.test(t)&&found.transmissions.indexOf("automatic")===-1)found.transmissions.push("automatic");
+  if(/\bstick\b/i.test(t)&&found.transmissions.indexOf("manual")===-1)found.transmissions.push("manual");
+  types.forEach(function(ty){if(t.indexOf(ty)>-1)found.types.push(ty)});
+  if(/mini.van/i.test(t)&&found.types.indexOf("mini-van")===-1)found.types.push("mini-van");
+  drives.forEach(function(d){if(t.indexOf(d)>-1){
+    if(d==="four wheel drive"||d==="all wheel drive")found.drives.push("4wd");
+    else if(d==="front wheel drive")found.drives.push("fwd");
+    else if(d==="rear wheel drive")found.drives.push("rwd");
+    else found.drives.push(d);
+  }});
+  if(/\bawd\b/i.test(t)&&found.drives.indexOf("4wd")===-1)found.drives.push("4wd");
+  colors.forEach(function(cl){if(t.indexOf(cl)>-1)found.colors.push(cl)});
+  if(t.indexOf("grey")>-1&&found.colors.indexOf("gray")===-1)found.colors.push("gray");
+
+  var pm=/under\s*\$?(\d{1,3}(?:,\d{3})*(?:\.?\d*)?[kK]?)\b/i.exec(t);
+  if(!pm)pm=/below\s*\$?(\d{1,3}(?:,\d{3})*(?:\.?\d*)?[kK]?)\b/i.exec(t);
+  if(!pm)pm=/less than\s*\$?(\d{1,3}(?:,\d{3})*(?:\.?\d*)?[kK]?)\b/i.exec(t);
+  if(!pm)pm=/max\s*\$?(\d{1,3}(?:,\d{3})*(?:\.?\d*)?[kK]?)\b/i.exec(t);
+  if(!pm)pm=/up to\s*\$?(\d{1,3}(?:,\d{3})*(?:\.?\d*)?[kK]?)\b/i.exec(t);
+  if(pm)found.priceMax=parsePriceVal(pm[1]);
+  var px=/over\s*\$?(\d{1,3}(?:,\d{3})*(?:\.?\d*)?[kK]?)\b/i.exec(t);
+  if(!px)px=/above\s*\$?(\d{1,3}(?:,\d{3})*(?:\.?\d*)?[kK]?)\b/i.exec(t);
+  if(!px)px=/more than\s*\$?(\d{1,3}(?:,\d{3})*(?:\.?\d*)?[kK]?)\b/i.exec(t);
+  if(!px)px=/min\s*\$?(\d{1,3}(?:,\d{3})*(?:\.?\d*)?[kK]?)\b/i.exec(t);
+  if(!px)px=/from\s*\$?(\d{1,3}(?:,\d{3})*(?:\.?\d*)?[kK]?)\b/i.exec(t);
+  if(px)found.priceMin=parsePriceVal(px[1]);
+  var pr=/between\s*\$?(\d{1,3}(?:,\d{3})*(?:\.?\d*)?[kK]?)\s*(?:and|&|to|-|–|–|—)\s*\$?(\d{1,3}(?:,\d{3})*(?:\.?\d*)?[kK]?)\b/i.exec(t);
+  if(!pr)pr=/\$(\d{1,3}(?:,\d{3})*(?:\.?\d*)?[kK]?)\s*(?:and|&|to|-|–|–|—)\s*\$?(\d{1,3}(?:,\d{3})*(?:\.?\d*)?[kK]?)\b/i.exec(t);
+  if(pr){found.priceMin=parsePriceVal(pr[1]);found.priceMax=parsePriceVal(pr[2])}
+
+  var ym=/(\d{4})\s*(?:or newer|or later|\+|and up|\+)/i.exec(t);
+  if(!ym)ym=/newer than\s*(\d{4})/i.exec(t);
+  if(!ym)ym=/after\s*(\d{4})/i.exec(t);
+  if(!ym)ym=/from\s*(\d{4})/i.exec(t);
+  if(ym)found.yearMin=parseInt(ym[1]);
+  var yx=/(\d{4})\s*(?:or older|or before|and older)/i.exec(t);
+  if(!yx)yx=/older than\s*(\d{4})/i.exec(t);
+  if(!yx)yx=/before\s*(\d{4})/i.exec(t);
+  if(!yx)yx=/up to\s*(\d{4})/i.exec(t);
+  if(yx)found.yearMax=parseInt(yx[1]);
+  var yr=/(\d{4})\s*(?:and|&|to|-|–|–|—)\s*(\d{4})/i.exec(t);
+  if(yr){found.yearMin=parseInt(yr[1]);found.yearMax=parseInt(yr[2])}
+
+  return found;
+}
+
+function parsePriceVal(v){
+  v=v.replace(/,/g,'').trim().toLowerCase();
+  if(v.endsWith("k"))return Math.round(parseFloat(v)*1000);
+  return parseInt(v);
+}
+
+function applyChatFilters(kw){
+  var changed=false;
+  if(kw.priceMin!==null&&filters.priceMin!==kw.priceMin){filters.priceMin=kw.priceMin;document.getElementById("fPriceMin").value=kw.priceMin;changed=true}
+  if(kw.priceMax!==null&&filters.priceMax!==kw.priceMax){filters.priceMax=kw.priceMax;document.getElementById("fPriceMax").value=kw.priceMax;changed=true}
+  if(kw.yearMin!==null&&filters.yearMin!==kw.yearMin){filters.yearMin=kw.yearMin;document.getElementById("fYearMin").value=kw.yearMin;changed=true}
+  if(kw.yearMax!==null&&filters.yearMax!==kw.yearMax){filters.yearMax=kw.yearMax;document.getElementById("fYearMax").value=kw.yearMax;changed=true}
+  if(kw.manufacturers.length>0){
+    var m=kw.manufacturers[0];
+    var mKey=m.replace(/\s+/g,'-');
+    if(filters.manufacturer!==mKey){filters.manufacturer=m;document.getElementById("fManufacturer").value=m;changed=true}
+  }
+  if(kw.fuels.length>0){
+    kw.fuels.forEach(function(f){
+      if(filters.fuels.indexOf(f)===-1){filters.fuels.push(f);changed=true}
+    });
+  }
+  if(kw.transmissions.length>0){
+    kw.transmissions.forEach(function(tr){
+      if(filters.transmissions.indexOf(tr)===-1){filters.transmissions.push(tr);changed=true}
+    });
+  }
+  if(kw.types.length>0){
+    kw.types.forEach(function(ty){
+      if(filters.types.indexOf(ty)===-1){filters.types.push(ty);changed=true}
+    });
+  }
+  if(kw.drives.length>0){
+    kw.drives.forEach(function(d){
+      if(filters.drives.indexOf(d)===-1){filters.drives.push(d);changed=true}
+    });
+  }
+  if(kw.colors.length>0){
+    kw.colors.forEach(function(cl){
+      if(filters.colors.indexOf(cl)===-1){filters.colors.push(cl);changed=true}
+    });
+  }
+  if(changed){
+    applyFilters();
+    syncChipUI();
+    emitFilterSystemMessage();
+  }
+}
+
+function syncChipUI(){
+  document.querySelectorAll(".filter-chip").forEach(function(b){
+    var val=b.getAttribute("data-val");
+    if(!val)return;
+    var isActive=false;
+    if(filters.fuels.indexOf(val)>-1)isActive=true;
+    if(filters.transmissions.indexOf(val)>-1)isActive=true;
+    if(filters.types.indexOf(val)>-1)isActive=true;
+    if(filters.drives.indexOf(val)>-1)isActive=true;
+    if(filters.colors.indexOf(val)>-1)isActive=true;
+    if(isActive)b.classList.add("active");else b.classList.remove("active");
+  });
+}
+
+// === LLM ===
+var BOT_VOICE="You are Beep-Beep, a friendly and knowledgeable car enthusiast chatbot. You help people find cars from a catalogue of ~1,200 used cars across 40+ manufacturers: sedan, SUV, truck, coupe, convertible, hatchback, wagon, van, electric, hybrid, diesel, gas. You're excited about cars and love matching people with their perfect ride. Irish flavour is optional but subtle -- use 'grand','sound','class','deadly' like seasoning but sparingly. Be helpful and direct: when asked about specific cars, makes, or budgets, give specific details. Know the full range: prices $1,100 to $100,000, years 1933 to 2021, mileage from 0 to 222k. You self-disclose as AI in your first reply. Keep responses 2-4 sentences. No em dashes. No markdown. Talk like a friendly car salesperson who genuinely wants to help.";
+
+function getMemoryPreamble(){
+  var parts=[];
+  if(memory.userName)parts.push("The user's name is "+memory.userName+". Address them by name now and then.");
+  if(memory.visits>1)parts.push("This is their "+memory.visits+ordinalSuffix(memory.visits)+" visit.");
+  if(memory.recentSearches&&memory.recentSearches.length)parts.push("They've searched: "+memory.recentSearches.slice(0,5).join(", ")+".");
+  if(parts.length)return "[Returning customer] "+parts.join(" ")+" Reference shared history naturally. ";
+  return "";
+}
+function ordinalSuffix(n){var s=["th","st","nd","rd"];var v=n%100;return s[(v-20)%10]||s[v]||s[0]}
+
+async function chatLLM(msg,dataMsg){
+  if(!LLM_KEY)return null;
+  var msgs=[{role:"system",content:getMemoryPreamble()+BOT_VOICE}];
+  for(var i=0;i<conv.length;i++)msgs.push(conv[i]);
+  if(dataMsg)msgs.push({role:"user",content:dataMsg});
+  msgs.push({role:"user",content:msg});
+  try{
+    var llmUrl=API_PROXY?API_PROXY+"/api/llm":(LLM_URL||"https://api.deepseek.com/v1/chat/completions");
+    var fetchOpts={method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:LLM_MODEL||"deepseek-chat",messages:msgs,temperature:0.9,max_tokens:400})};
+    if(!API_PROXY)fetchOpts.headers.Authorization="Bearer "+LLM_KEY;
+    var r=await fetch(llmUrl,fetchOpts);
+    if(!r.ok){var et=await r.text();console.error("[Beep-Beep] LLM err:",r.status,et.slice(0,200));if(et.indexOf("Insufficient")>-1||et.indexOf("balance")>-1||r.status===402){var b=document.getElementById("botBadge");b.textContent="no credits";b.style.background="#C0392B";b.classList.remove("live")}return null}
+    var d=await r.json();var reply=d.choices[0].message.content.trim();
+    conv.push({role:"user",content:msg});conv.push({role:"assistant",content:reply});
+    if(conv.length>20)conv=conv.slice(-20);
+    return reply;
+  }catch(e){console.warn("[Beep-Beep] fail:",e.message);return null}
+}
+
+function bobAskedQ(reply){lastBotAsked=/[?]/.test(reply)||/\b(what|which|when|where|who|how|do you|have you|are you|would you|fancy|prefer|into|like)\b/i.test(reply)}
+
+function showHuman(){document.getElementById("humanModal").classList.add("open")}
+
+// === Send ===
+async function send(){
+  var txt=chatInput.value.trim();if(!txt)return;
+  addMsg(txt,"user");chatInput.value="";showTyping();
+  try{
+
+  if(txt==="CLS"){hideTyping();clearMemory();return;}
+
+  if(expectingHumanBot){
+    var hb=S(txt);
+    if(hb==="human"){expectingHumanBot=false;hideTyping();showHuman();return}
+    if(/^(bot|beep|beep.beep|chatbot)$/i.test(hb)){
+      expectingHumanBot=false;expectingConsent=true;
+      hideTyping();
+      addMsg("Sound! Before we dive in -- would you like me to remember your name and what you're searching for between visits? It all stays on your device, never sent anywhere. Just say <strong>yes</strong> or <strong>no</strong>.",'bot');
+      addSugg(["Yes","No"]);
+      return;
+    }
+    hideTyping();
+    addMsg("Just tap <strong>Human</strong> to speak to our team, or <strong>Bot</strong> to chat with me!",'bot');
+    addSugg(["Human","Bot"]);
+    return;
+  }
+
+  if(expectingConsent&&!memory.consent){
+    var t=S(txt);
+    if(/^(yes|yeah|yep|sure|ok|okay|grand|sound|go on)$/i.test(t)){
+      memory.consent="yes";expectingConsent=false;saveMemory();expectingName=true;
+      hideTyping();updateMemoryButtons();
+      addMsg("Class! I'll remember you. What should I call you?",'bot');
+      return;
+    }
+    if(/^(no|nope|nah|no thanks)$/i.test(t)){
+      memory.consent="no";expectingConsent=false;expectingName=false;saveMemory();
+      hideTyping();updateMemoryButtons();
+      addMsg("No worries -- I won't store anything about you. What are you looking for today?",'bot');
+      addSugg(["SUVs under $30k","Electric cars","Toyota sedans","4WD Trucks","Convertibles","Human"]);
+      lastBotAsked=true;return;
+    }
+    if(S(txt)==="human"){expectingConsent=false;hideTyping();showHuman();return}
+    hideTyping();
+    addMsg("Just a simple <strong>yes</strong> or <strong>no</strong> -- would you like me to remember you between visits?",'bot');
+    addSugg(["Yes","No"]);
+    return;
+  }
+
+  if(expectingName&&!memory.userName){
+    var name=txt.replace(/^(i'm|i am|my name is|call me|it's|name's|people call me)\s+/i,"").replace(/[.!?,]$/,"").trim();
+    var nl=S(name);
+    if(nl==="human"){expectingName=false;hideTyping();showHuman();return}
+    if(/^(bot|beep|beep.beep|chatbot|yes|no|nope|nah)$/i.test(nl)){hideTyping();addMsg("That doesn't sound like a name! What should I call you?",'bot');return}
+    if(name&&name.split(/\s+/).length<=3&&name.length>=2){
+      memory.userName=name;expectingName=false;saveMemory();
+      document.getElementById("botLabel").textContent="Car finder &middot; knows "+name;
+      hideTyping();
+      addMsg("Lovely to meet you, <strong>"+name+"</strong>! Right then, what kind of car are you after?",'bot');
+      addSugg(["SUVs under $30k","Electric cars","Toyota sedans","4WD Trucks","Convertibles","Human"]);
+      lastBotAsked=true;return;
+    }
+  }
+
+  var isGibberish=false;
+  var clean=txt.replace(/[^a-zA-Z]/g,'').toLowerCase();
+  if(txt.length<2)isGibberish=true;
+  else if(/^[^a-zA-Z0-9\s]{3,}$/.test(txt))isGibberish=true;
+  else if(/(.)\1{4,}/.test(txt))isGibberish=true;
+  else if(/^(asdf|qwer|zxcv|uiop|hjkl)/i.test(clean))isGibberish=true;
+  else if(/^(yes|no|ok|okay|yeah|yep|nope|maybe|sure|idk|hello|hi|hey|thanks|thx|bye|lol|haha|what|why|who|how|help|test)$/i.test(S(txt)))isGibberish=true;
+  else if(clean.length>=4){var vowels=clean.match(/[aeiou]/g);var vCount=vowels?vowels.length:0;var cCount=clean.length-vCount;if(vCount===0||cCount/vCount>3)isGibberish=true}
+
+  if(isGibberish){
+    hideTyping();gibberishCount++;
+    if(gibberishCount>=4){addMsg("I'm still not getting it -- let me hand you over to our team directly.",'bot');showHuman();return}
+    if(gibberishCount>=2){addMsg("I'm having trouble understanding. Type <strong>human</strong> to reach our team. Or try asking about cars like 'SUVs under $30k' or 'Toyota sedans'.",'bot');addSugg(["Human","SUVs under $30k","Electric cars","Trucks"]);}
+    else{addMsg("I didn't quite catch that! Try asking about cars -- like 'Show me SUVs under $25,000' or 'Any BMWs from 2018 or newer?'",'bot');addSugg(["SUVs under $30k","Electric cars","Toyota sedans","Trucks","Human"]);}
+    return;
+  }
+  gibberishCount=0;
+
+  if(S(txt)==="human"){hideTyping();showHuman();return}
+
+  // Step 1: Keyword extraction + filter application (non-LLM path usable too)
+  var kw=extractKeywords(txt);
+  applyChatFilters(kw);
+
+  // Step 2: LLM response
+  if(LLM_KEY){
+    var dataContext="Currently showing "+filteredCars.length+" cars.";
+    if(filteredCars.length>0){
+      var sampleCars=filteredCars.slice(0,8);
+      dataContext+=" Sample: "+sampleCars.map(function(c){return c.year+" "+ucfirst(c.manufacturer)+" "+c.model+" - $"+c.price.toLocaleString()+` (${c.odometer} mi, ${c.condition}, ${c.fuel}, ${c.transmission})`}).join("; ");
+      if(filters.manufacturer)dataContext+=" All are "+ucfirst(filters.manufacturer)+"s.";
+      if(filters.priceMin||filters.priceMax)dataContext+=" Price: "+(filters.priceMin?"$"+filters.priceMin.toLocaleString():"")+(filters.priceMin&&filters.priceMax?" - ":"")+(filters.priceMax?"$"+filters.priceMax.toLocaleString():"")+".";
+    }
+    var llmReply=await chatLLM(txt,dataContext);
+    hideTyping();
+    if(llmReply){
+      addMsg(llmReply,"bot");bobAskedQ(llmReply);
+    }else{
+      addMsg("Hmm, I'm having trouble connecting right now. But I've updated the results panel with what matches your search. Try again, or type <strong>human</strong> to reach our team.",'bot');
+    }
+  }
+  if(!LLM_KEY)hideTyping();
+
+  // Step 3: Track search
+  if(kw.manufacturers.length>0)kw.manufacturers.forEach(function(m){memory.recentMakes.unshift(m);if(memory.recentMakes.length>5)memory.recentMakes.pop()});
+  memory.recentSearches.unshift(txt.slice(0,40));if(memory.recentSearches.length>10)memory.recentSearches.pop();
+  saveMemory();
+
+  // Step 4: Post-search suggestion chips
+  var sugChips=["Keep exploring"];
+  if(kw.manufacturers.length===0&&kw.types.length===0)sugChips=sugChips.concat(["SUVs under $30k","Electric cars","Trucks"]);
+  else if(kw.types.length>0)sugChips.push("Show me "+kw.types[0]+"s from a different make");
+  else if(kw.manufacturers.length>0)sugChips.push("Show me "+ucfirst(kw.manufacturers[0])+" SUVs");
+  sugChips.push("Human");
+  setTimeout(function(){addSugg(sugChips.slice(0,5))},2500);
+  }catch(e){
+    console.error("[Beep-Beep] send() crash:",e);
+    hideTyping();
+    addMsg("Something went wrong on my end. Could you try again, or type <strong>human</strong> to speak to our team?",'bot');
+  }
+}
+
+// === Init ===
+document.getElementById("chatSend").addEventListener("click",send);
+chatInput.addEventListener("keydown",function(e){if(e.key==="Enter")send()});
+chatMsgs.addEventListener("click",function(e){var link=e.target.closest(".chat-link");if(link&&link.dataset.query)qa(link.dataset.query)});
+
+(function(){
+  var b=document.getElementById("botBadge"),l=document.getElementById("botLabel");
+  if(LLM_KEY&&LLM_URL&&LLM_MODEL){b.textContent="LLM Live";b.classList.add("live");l.textContent="Car finder &middot; AI-powered"}
+  else{b.textContent="LLM Off";l.textContent="Car finder &middot; basic mode"}
+
+  loadMemory();
+  if(memory.userName)l.textContent="Car finder &middot; knows "+memory.userName;
+
+  fetchCars().then(function(ok){
+    if(!ok)return;
+    applyFilters();
+    if(memory.consent==="yes"&&memory.userName){
+      addMsg("Welcome back, <strong>"+memory.userName+"</strong>! Great to see you again. I've got our full catalogue of 1,200 cars ready.",'bot');
+      setTimeout(function(){addMsg("What can I help with today? Same kind of search as last time or something different?",'bot')},800);
+      setTimeout(function(){addSugg(memory.recentSearches.length?memory.recentSearches.slice(0,4).concat(["Human"]):["SUVs under $30k","Electric cars","Toyota sedans","4WD Trucks","Human"]);lastBotAsked=true},1600);
+    }else if(memory.consent==="no"){
+      addMsg("Welcome back! I'm <strong>Beep-Beep</strong>, an AI chatbot. You asked me not to store anything, so this is a fresh start. Type <strong>human</strong> any time to reach our team.",'bot');
+      setTimeout(function(){addMsg("What are you looking for today?",'bot');addSugg(["SUVs under $30k","Electric cars","Toyota sedans","4WD Trucks","Human"]);lastBotAsked=true},1000);
+    }else{
+      addMsg("Hello! I'm <strong>Beep-Beep</strong>, an AI chatbot powered by DeepSeek. I help you find the right car from <strong>1,200 vehicles</strong> across 40+ manufacturers -- everything from sleek sedans and rugged trucks to electric and hybrid models. Prices range from $1,100 to $100,000.",'bot');
+      setTimeout(function(){
+        expectingHumanBot=true;
+        addMsg("Are you here to chat with me or would you prefer a real human?",'bot');
+        addSugg(["Bot","Human"]);
+      },1200);
+    }
+  }).catch(function(e){console.error("[Beep-Beep] init fetchCars fail:",e)});
+})();
+</script>
+</body>
+</html>
