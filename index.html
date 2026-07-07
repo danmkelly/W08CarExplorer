@@ -51,6 +51,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .chat-top-right{margin-left:12px;display:flex;flex-direction:column;align-items:stretch;gap:4px;flex-shrink:0}
 .chat-top-badge{font-size:0.7rem;padding:4px 14px;border-radius:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;background:#2A2A2A;color:var(--text-dim);text-align:center;white-space:nowrap}
 .chat-top-badge.live{background:rgba(230,126,34,0.25);color:var(--accent)}
+.chat-top-badge.mcp-live{background:rgba(52,152,219,0.25);color:var(--accent2)}
 .chat-clear-btn{font-size:0.62rem;padding:3px 14px;border-radius:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;background:transparent;color:var(--text-dim);border:1px solid var(--border);cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap;text-align:center}
 .chat-clear-btn:hover{color:var(--accent);border-color:var(--accent)}
 .chat-msgs{flex:1 1 0;min-height:0;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:18px;scroll-behavior:smooth}
@@ -249,7 +250,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         <span id="botLabel">Car finder &middot; AI-powered</span>
       </div>
       <div class="chat-top-right">
-      <span class="chat-top-badge" id="botBadge" role="status" aria-live="polite">basic</span>
+      <span class="chat-top-badge" id="botBadge" role="status" aria-live="polite">LLM Off</span>
+      <span class="chat-top-badge" id="mcpBadge" role="status" style="font-size:0.62rem">MCP Off</span>
       <button class="chat-clear-btn" id="clearMemBtn" onclick="clearMemory()" title="Clear what Beep-Beep remembers" aria-label="Clear memory" style="display:none">Clear memory</button>
       <button class="chat-clear-btn" id="rememberBtn" onclick="rememberMe()" title="Let Beep-Beep remember you" aria-label="Remember me" style="display:none">Remember me</button>
       </div>
@@ -391,10 +393,14 @@ var API_PROXY="";
   if(typeof LLM_MODEL==="undefined")window.LLM_MODEL="";
 })(window);
 
-// === Car Data ===
+// === Car Data (MCP Pipeline) ===
+// When API_PROXY is configured (Cloudflare Worker deployed), fetch via MCP:
+//   Browser -> Cloudflare Worker -> car dataset (with filtering)
+// When API_PROXY is empty (static GitHub Pages only), fall back to local:
+//   Browser -> cars.json (same-directory static file)
 var allCars=[];
 var filteredCars=[];
-var CARS_DATA_URL="cars.json";
+var CARS_DATA_URL=API_PROXY?API_PROXY+"/api/cars":"cars.json";
 
 // === Filter State ===
 var filters={
@@ -574,10 +580,13 @@ async function fetchCars(retries){
     try{
       var r=await fetch(CARS_DATA_URL);
       if(!r.ok)throw new Error("HTTP "+r.status);
-      allCars=await r.json();
+      var data=await r.json();
+      allCars=Array.isArray(data)?data:(data.results||data.cars||[]);
+      if(!allCars.length)throw new Error("Empty dataset");
       filteredCars=allCars.slice();
       document.getElementById("loadingOverlay").classList.remove("active");
       buildFilterOptions();
+      console.log("[MCP] Loaded "+allCars.length+" cars from "+(API_PROXY?"Cloudflare Worker":"static file"));
       return true;
     }catch(e){
       if(attempt===retries){
@@ -1075,8 +1084,11 @@ chatMsgs.addEventListener("click",function(e){var link=e.target.closest(".chat-l
 
 (function(){
   var b=document.getElementById("botBadge"),l=document.getElementById("botLabel");
+  var m=document.getElementById("mcpBadge");
   if(LLM_KEY&&LLM_URL&&LLM_MODEL){b.textContent="LLM Live";b.classList.add("live");l.textContent="Car finder &middot; AI-powered"}
   else{b.textContent="LLM Off";l.textContent="Car finder &middot; basic mode"}
+  if(API_PROXY){m.textContent="MCP Live";m.classList.add("mcp-live")}
+  else{m.textContent="MCP Cached";m.style.color="var(--accent3)"}
 
   loadMemory();
   if(memory.userName)l.textContent="Car finder &middot; knows "+memory.userName;

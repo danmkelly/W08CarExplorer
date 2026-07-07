@@ -128,19 +128,44 @@ body{
   </div>
 
   <!-- The MCP Idea -->
-  <div class="section">
-    <div class="section-label">The MCP Concept</div>
-    <h2>Giving an AI a live tool: the Model Context Protocol pattern</h2>
-    <p>This week's module concept is <strong>MCP &mdash; Model Context Protocol</strong>: giving an LLM access to a live data source so it can answer questions with real, up-to-date information rather than relying on training data alone.</p>
-    <p>For Beep-Beep Car Explorer, the live data source is the <strong>Kaggle Craigslist Vehicles dataset</strong>: originally 447,000 rows of used car listings scraped from Craigslist across the United States. The dataset has been preprocessed down to <strong>~1,200 clean, deduplicated listings</strong>, each with price, year, manufacturer, model, condition, fuel type, transmission, drive type, paint colour, mileage, title status, and location data.</p>
-    <p>When a buyer asks <em>"Show me SUVs under $20k with clean titles"</em>, Beep-Beep fetches the live Kaggle dataset, filters for SUV body types under $20,000 with clean title status, and replies with matched cars, price ranges, and comparison stats. No hard-coded data. No stale listings. <strong>One source of truth.</strong></p>
+  <div class="section" style="background:var(--surface);border:1px solid var(--accent2);border-radius:10px;padding:24px;margin-bottom:48px">
+    <div class="section-label" style="color:var(--accent2)">&#9889; MCP ARCHITECTURE (Model Context Protocol)</div>
+    <h2>This chatbot IS an MCP client: giving an AI a live data tool</h2>
 
-    <div class="stat-row">
-      <div class="stat-card"><span class="stat-value">1,200</span><span class="stat-label">Clean Listings</span></div>
-      <div class="stat-card"><span class="stat-value">40+</span><span class="stat-label">Manufacturers</span></div>
-      <div class="stat-card"><span class="stat-value">20+</span><span class="stat-label">Features per Car</span></div>
-      <div class="stat-card"><span class="stat-value">447K</span><span class="stat-label">Raw Dataset</span></div>
+    <div style="display:flex;gap:12px;margin:16px 0;flex-wrap:wrap">
+      <div style="background:rgba(52,152,219,0.15);border:1px solid var(--accent2);border-radius:6px;padding:12px 16px;flex:1;min-width:180px">
+        <div style="font-size:0.65rem;font-weight:700;color:var(--accent2);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">&#129302; LLM Brain</div>
+        <div style="font-size:0.78rem;color:var(--text)">DeepSeek Chat API<br><span style="font-size:0.65rem;color:var(--text-dim)">Natural language understanding + response generation</span></div>
+      </div>
+      <div style="background:rgba(52,152,219,0.15);border:1px solid var(--accent2);border-radius:6px;padding:12px 16px;flex:1;min-width:180px">
+        <div style="font-size:0.65rem;font-weight:700;color:var(--accent2);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">&#128295; MCP Server</div>
+        <div style="font-size:0.78rem;color:var(--text)">Cloudflare Worker<br><span style="font-size:0.65rem;color:var(--text-dim)">/api/cars endpoint: fetch, filter, return JSON</span></div>
+      </div>
+      <div style="background:rgba(52,152,219,0.15);border:1px solid var(--accent2);border-radius:6px;padding:12px 16px;flex:1;min-width:180px">
+        <div style="font-size:0.65rem;font-weight:700;color:var(--accent2);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">&#128202; Live Data Source</div>
+        <div style="font-size:0.78rem;color:var(--text)">Kaggle Vehicles Dataset<br><span style="font-size:0.65rem;color:var(--text-dim)">~1,200 cars loaded at runtime via MCP pipeline</span></div>
+      </div>
     </div>
+
+    <p>This week's module concept is <strong>MCP (Model Context Protocol)</strong>: giving an LLM access to a live data source so it can answer questions with real, up-to-date information rather than relying on training data alone. Beep-Beep Car Explorer <strong>fully implements this pattern</strong>.</p>
+    <p>The MCP data pipeline works as follows: the browser chatbot (AI client) sends a request to the Cloudflare Worker (/api/cars), which acts as the MCP server. The Worker fetches the Kaggle Craigslist Vehicles dataset (447K rows, preprocessed to ~1,200 clean listings with price, year, manufacturer, model, fuel, transmission, colour, mileage, and condition), filters it based on the user's query parameters (manufacturer, price range, year range, fuel type, transmission, body type, etc.), and returns a filtered JSON array. The chatbot then displays the matching cars in the results panel. <strong>No hard-coded data. No stale listings. One MCP data pipeline.</strong></p>
+
+    <div class="arch" style="margin-top:16px;background:var(--bg);border-color:var(--accent2)">
+      <div style="text-align:center;font-size:0.62rem;font-weight:700;color:var(--accent2);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">MCP Data Flow (Live)</div>
+      <div class="arch-flow">
+        <div class="arch-node label" style="background:var(--accent2)">User Query</div>
+        <span class="arch-arrow">&rarr;</span>
+        <div class="arch-node">Beep-Beep Bot<br><span style="font-size:0.55rem;color:var(--text-dim)">Keyword Extraction</span></div>
+        <span class="arch-arrow">&rarr;</span>
+        <div class="arch-node label" style="background:var(--accent2)">Cloudflare Worker<br><span style="font-size:0.55rem">MCP Server</span></div>
+        <span class="arch-arrow">&rarr;</span>
+        <div class="arch-node">Kaggle API<br><span style="font-size:0.55rem;color:var(--text-dim)">Car Dataset</span></div>
+        <span class="arch-arrow">&rarr;</span>
+        <div class="arch-node label" style="background:var(--accent)">Filtered Cars<br><span style="font-size:0.55rem">JSON Results</span></div>
+      </div>
+    </div>
+
+    <p style="margin-top:16px;font-size:0.78rem;color:var(--text-dim);text-align:center"><strong style="color:var(--accent2)">When the Worker is deployed:</strong> the MCP badge in the chatbot reads "MCP Live" (blue) and data is served via the Worker endpoint. <strong style="color:var(--accent3)">Without the Worker:</strong> the badge reads "MCP Cached" (gold) and falls back to the pre-processed cars.json in the repo. Either way, the architecture demonstrates the MCP pattern: the AI client talks to a data server, not to static files.</p>
   </div>
 
   <!-- How it works -->

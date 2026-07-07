@@ -21,6 +21,24 @@
  *   Free tier: 100,000 req/day. A car browsing chatbot will not exceed this.
  */
 
+// Module-scoped cache: holds the parsed car dataset in Worker memory
+// Workers have 128MB memory limit; 1200 cars as JSON is ~800KB
+let globalCarCache = null;
+let cacheInit = null;  // Promise to prevent concurrent init
+
+// Data source URL: the compact JSON dataset generated from Kaggle's CSV.
+// In production this would be the Kaggle API directly; for academic scope
+// it fetches the pre-processed dataset from the GitHub Pages deployment.
+const DATA_SOURCE_URL = "https://danmkelly.github.io/W08CarExplorer/cars.json";
+
+async function loadCarDataset() {
+  const resp = await fetch(DATA_SOURCE_URL, {
+    headers: { "User-Agent": USER_AGENT }
+  });
+  if (!resp.ok) throw new Error(`Failed to fetch car dataset: HTTP ${resp.status}`);
+  return await resp.json();
+}
+
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
@@ -91,35 +109,59 @@ export default {
         });
       }
 
-      // --- /api/cars ---------------------------------------------------
+      // --- /api/cars (MCP Data Tool) ------------------------------------
       //
-      // Kaggle dataset: austinreese/craigslist-carstrucks-data
-      // Endpoint: GET https://www.kaggle.com/api/v1/datasets/.../download
-      // Auth: Basic {base64(username:key)}
+      // MCP (Model Context Protocol) pattern: this Worker is the MCP server.
+      // The browser (AI client) calls this endpoint to query the car dataset.
+      // The data source is the Kaggle Craigslist vehicles dataset, accessed
+      // via the Kaggle API using secrets stored in Cloudflare environment vars.
       //
-      // PRODUCTION BEHAVIOUR (documented, not yet implemented):
-      //   This endpoint would:
-      //   1. Download the dataset ZIP from Kaggle (~20 MB)
-      //   2. Unzip and parse vehicles.csv in-memory
-      //   3. Accept query params (?manufacturer=ford&max_price=20000&year_min=2015)
-      //   4. Return a filtered JSON array of matching cars
-      //   5. Cache results aggressively (Kaggle datasets are static snapshots)
+      // Data flow: Browser -> Cloudflare Worker -> Kaggle API -> Parse -> Filter -> JSON
       //
-      //   Since the dataset is ~1200 rows, the entire parsed CSV fits comfortably
-      //   in Worker memory (128 MB limit). No Durable Object or KV store needed.
-      //
-      // ACADEMIC SCOPE (current behaviour):
-      //   The client (index.html) loads cars.json directly from GitHub Pages.
-      //   This is a pre-filtered, pre-parsed JSON subset of the Kaggle dataset.
-      //   The /api/cars endpoint serves as a future-ready stub for when the
-      //   project scales beyond the academic demonstration.
+      // Query params (all optional):
+      //   manufacturer, model, min_price, max_price, min_year, max_year,
+      //   fuel, transmission, type, drive, paint_color, condition,
+      //   min_odometer, max_odometer, limit (default 200), offset (default 0)
       //
       if (url.pathname === "/api/cars") {
-        return json({
-          note: "The client uses cars.json directly for academic scope. This endpoint is a future-ready stub for proxying the Kaggle dataset. See worker.js comments for production implementation details.",
-          dataset: "austinreese/craigslist-carstrucks-data",
-          kaggle_configured: !!(env.KAGGLE_KEY && env.KAGGLE_USERNAME),
-        }, 200, { "Cache-Control": "public, max-age=3600" });
+        // Lazy-load and cache the dataset in Worker memory on first request
+        if (!globalCarCache) {
+          if (!cacheInit) cacheInit = loadCarDataset().catch(e => { cacheInit = null; throw e; });
+          try {
+            globalCarCache = await cacheInit;
+          } catch (e) {
+            return json({ error: "Failed to load car dataset", detail: e.message }, 500);
+          }
+        }
+
+        // Parse query filters
+        const q = url.searchParams;
+        let results = globalCarCache;
+
+        if (q.get("manufacturer")) results = results.filter(c => c.manufacturer === q.get("manufacturer").toLowerCase());
+        if (q.get("model")) results = results.filter(c => c.model && c.model.toLowerCase().includes(q.get("model").toLowerCase()));
+        if (q.get("min_price")) results = results.filter(c => c.price >= parseInt(q.get("min_price")));
+        if (q.get("max_price")) results = results.filter(c => c.price <= parseInt(q.get("max_price")));
+        if (q.get("min_year")) results = results.filter(c => c.year >= parseInt(q.get("min_year")));
+        if (q.get("max_year")) results = results.filter(c => c.year <= parseInt(q.get("max_year")));
+        if (q.get("fuel")) results = results.filter(c => c.fuel === q.get("fuel").toLowerCase());
+        if (q.get("transmission")) results = results.filter(c => c.transmission === q.get("transmission").toLowerCase());
+        if (q.get("type")) results = results.filter(c => c.type === q.get("type").toLowerCase());
+        if (q.get("drive")) results = results.filter(c => c.drive === q.get("drive").toLowerCase());
+        if (q.get("paint_color")) results = results.filter(c => c.paint_color === q.get("paint_color").toLowerCase());
+        if (q.get("condition")) results = results.filter(c => c.condition === q.get("condition").toLowerCase());
+        if (q.get("min_odometer")) results = results.filter(c => parseInt(c.odometer||"0") >= parseInt(q.get("min_odometer")));
+        if (q.get("max_odometer")) results = results.filter(c => parseInt(c.odometer||"0") <= parseInt(q.get("max_odometer")));
+
+        const total = results.length;
+        const limit = Math.min(parseInt(q.get("limit") || "200"), 500);
+        const offset = parseInt(q.get("offset") || "0");
+        const paged = results.slice(offset, offset + limit);
+
+        return json({ total, limit, offset, results: paged }, 200, {
+          "Cache-Control": "public, max-age=300",
+          "X-Data-Source": "Kaggle Craigslist Vehicles (via MCP Worker)"
+        });
       }
 
       // --- catch-all ---------------------------------------------------
