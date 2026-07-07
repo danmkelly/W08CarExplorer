@@ -1,0 +1,16 @@
+# Beep-Beep Car Explorer - Cloudflare Worker config
+name = "beep-beep-car-proxy"
+main = "worker.js"
+compatibility_date = "2025-07-07"
+
+# Deploy:
+#   npx wrangler deploy
+#   npx wrangler secret put LLM_KEY
+#   npx wrangler secret put KAGGLE_KEY
+#   npx wrangler secret put KAGGLE_USERNAME
+
+# Rate limiting (uncomment for production):
+# [unsafe.bindings]
+# RATE_LIMITER = { type = "ratelimit", namespace_id = "your-namespace-id" }
+#   limit = 100      # requests per period
+#   period = 60      # seconds

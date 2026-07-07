@@ -1,0 +1,6 @@
+.wrangler/
+node_modules/
+config.js
+.DS_Store
+dist/
+*.log
