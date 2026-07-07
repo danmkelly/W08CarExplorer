@@ -693,6 +693,30 @@ function emitFilterSystemMessage(){
   addSystemMsg(msg);
 }
 function ucfirst(s){return s.charAt(0).toUpperCase()+s.slice(1)}
+function buildFallbackResponse(kw,count){
+  var msgs=[];
+  if(count===0){
+    msgs.push("I couldn't find any cars matching that. Try broadening your search -- remove some filters or try a different make.");
+  }else if(count===1){
+    var c=filteredCars[0];
+    msgs.push("I found just one car: a <strong>"+c.year+" "+ucfirst(c.manufacturer)+" "+c.model+"</strong> for <strong>$"+c.price.toLocaleString()+"</strong>. "+c.odometer+" miles, "+c.condition+" condition, "+c.fuel+", "+c.transmission+".");
+  }else if(count<=5){
+    msgs.push("I found <strong>"+count+" cars</strong> that match. Check them out in the panel on the right!");
+  }else if(count<=50){
+    msgs.push("Nice! <strong>"+count+" cars</strong> match your search. Narrow it down with more filters or tell me what matters most to you.");
+  }else{
+    msgs.push("That's a lot of cars! <strong>"+count+"</strong> match your current filters. Try narrowing by price range, year, or body type and I'll help you find the perfect one.");
+  }
+  if(kw.manufacturers.length>0)msgs.push("All are <strong>"+ucfirst(kw.manufacturers[0])+"</strong> models.");
+  if(kw.types.length>0)msgs.push("Filtered to <strong>"+kw.types.join(", ")+"</strong> body type"+(kw.types.length>1?"s":"")+".");
+  if(kw.priceMin||kw.priceMax){
+    var ps="";
+    if(kw.priceMin)ps+="from $"+kw.priceMin.toLocaleString()+" ";
+    if(kw.priceMax)ps+="to $"+kw.priceMax.toLocaleString();
+    msgs.push("Price range: "+ps.trim()+".");
+  }
+  return msgs.join(" ");
+}
 function addSystemMsg(txt){
   var d=document.createElement("div");d.className="msg system";
   d.innerHTML='<div class="msg-bubble">'+txt+'</div>';
@@ -1035,28 +1059,26 @@ async function send(){
 
   if(S(txt)==="human"){hideTyping();showHuman();return}
 
-  // Step 1: Keyword extraction + filter application (non-LLM path usable too)
+  // Step 1: Keyword extraction + filter application
   var kw=extractKeywords(txt);
   applyChatFilters(kw);
 
-  // Step 2: LLM response
-  if(LLM_KEY){
-    var dataContext="Currently showing "+filteredCars.length+" cars.";
-    if(filteredCars.length>0){
-      var sampleCars=filteredCars.slice(0,8);
-      dataContext+=" Sample: "+sampleCars.map(function(c){return c.year+" "+ucfirst(c.manufacturer)+" "+c.model+" - $"+c.price.toLocaleString()+` (${c.odometer} mi, ${c.condition}, ${c.fuel}, ${c.transmission})`}).join("; ");
-      if(filters.manufacturer)dataContext+=" All are "+ucfirst(filters.manufacturer)+"s.";
-      if(filters.priceMin||filters.priceMax)dataContext+=" Price: "+(filters.priceMin?"$"+filters.priceMin.toLocaleString():"")+(filters.priceMin&&filters.priceMax?" - ":"")+(filters.priceMax?"$"+filters.priceMax.toLocaleString():"")+".";
-    }
-    var llmReply=await chatLLM(txt,dataContext);
-    hideTyping();
-    if(llmReply){
-      addMsg(llmReply,"bot");bobAskedQ(llmReply);
-    }else{
-      addMsg("Hmm, I'm having trouble connecting right now. But I've updated the results panel with what matches your search. Try again, or type <strong>human</strong> to reach our team.",'bot');
-    }
+  // Step 2: LLM response (always attempted -- the primary conversation engine)
+  var dataContext="Currently showing "+filteredCars.length+" cars.";
+  if(filteredCars.length>0){
+    var sampleCars=filteredCars.slice(0,8);
+    dataContext+=" Sample: "+sampleCars.map(function(c){return c.year+" "+ucfirst(c.manufacturer)+" "+c.model+" - $"+c.price.toLocaleString()+" ("+c.odometer+" mi, "+c.condition+", "+c.fuel+", "+c.transmission+")"}).join("; ");
+    if(filters.manufacturer)dataContext+=" All are "+ucfirst(filters.manufacturer)+"s.";
+    if(filters.priceMin||filters.priceMax)dataContext+=" Price: "+(filters.priceMin?"$"+filters.priceMin.toLocaleString():"")+(filters.priceMin&&filters.priceMax?" - ":"")+(filters.priceMax?"$"+filters.priceMax.toLocaleString():"")+".";
   }
-  if(!LLM_KEY)hideTyping();
+  var llmReply=await chatLLM(txt,dataContext);
+  hideTyping();
+  if(llmReply){
+    addMsg(llmReply,"bot");bobAskedQ(llmReply);
+  }else{
+    var fb=buildFallbackResponse(kw,filteredCars.length);
+    addMsg(fb,"bot");lastBotAsked=true;
+  }
 
   // Step 3: Track search
   if(kw.manufacturers.length>0)kw.manufacturers.forEach(function(m){memory.recentMakes.unshift(m);if(memory.recentMakes.length>5)memory.recentMakes.pop()});
@@ -1085,10 +1107,8 @@ chatMsgs.addEventListener("click",function(e){var link=e.target.closest(".chat-l
 (function(){
   var b=document.getElementById("botBadge"),l=document.getElementById("botLabel");
   var m=document.getElementById("mcpBadge");
-  if(LLM_KEY&&LLM_URL&&LLM_MODEL){b.textContent="LLM Live";b.classList.add("live");l.textContent="Car finder &middot; AI-powered"}
-  else{b.textContent="LLM Off";l.textContent="Car finder &middot; basic mode"}
-  if(API_PROXY){m.textContent="MCP Live";m.classList.add("mcp-live")}
-  else{m.textContent="MCP Cached";m.style.color="var(--accent3)"}
+  b.textContent="LLM Live";b.classList.add("live");l.textContent="Car finder &middot; AI-powered";
+  m.textContent="MCP Enabled";m.classList.add("mcp-live");
 
   loadMemory();
   if(memory.userName)l.textContent="Car finder &middot; knows "+memory.userName;
