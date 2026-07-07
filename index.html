@@ -202,7 +202,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   .car-grid{grid-template-columns:repeat(2,1fr);gap:10px}
   .car-card{padding:14px}
   .filter-bar{padding:10px 14px;gap:5px 6px}
-  .filster-chip{padding:8px 12px;min-height:38px;font-size:0.66rem}
+  .filter-chip{padding:8px 12px;min-height:38px;font-size:0.66rem}
   .filter-results{padding:5px 10px}
   .filter-clear-btn{padding:8px 12px;min-height:38px}
   .car-grid-wrap{padding:10px 14px 14px}
@@ -298,14 +298,14 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <div id="rContent" style="display:none">
       <div class="filter-bar" id="filterBar">
         <span class="filter-label">Price:</span>
-        <input class="filter-input" id="fPriceMin" type="number" placeholder="Min $" onchange="onFilterInput()">
+        <input class="filter-input" id="fPriceMin" type="number" placeholder="Min $" onchange="onFilterInput()" aria-label="Minimum price">
         <span style="font-size:0.7rem;color:var(--text-dim)">&ndash;</span>
-        <input class="filter-input" id="fPriceMax" type="number" placeholder="Max $" onchange="onFilterInput()">
+        <input class="filter-input" id="fPriceMax" type="number" placeholder="Max $" onchange="onFilterInput()" aria-label="Maximum price">
         <span class="filter-divider"></span>
         <span class="filter-label">Year:</span>
-        <input class="filter-input" id="fYearMin" type="number" placeholder="Min" onchange="onFilterInput()">
+        <input class="filter-input" id="fYearMin" type="number" placeholder="Min" onchange="onFilterInput()" aria-label="Minimum year">
         <span style="font-size:0.7rem;color:var(--text-dim)">&ndash;</span>
-        <input class="filter-input" id="fYearMax" type="number" placeholder="Max" onchange="onFilterInput()">
+        <input class="filter-input" id="fYearMax" type="number" placeholder="Max" onchange="onFilterInput()" aria-label="Maximum year">
         <span class="filter-divider"></span>
         <span class="filter-label">Make:</span>
         <select class="filter-select" id="fManufacturer" onchange="onFilterInput()">
@@ -418,7 +418,7 @@ var lastFilterChatMsg="";
 
 // === State ===
 var conv=[],gibberishCount=0,expectingName=false,expectingConsent=false,expectingHumanBot=false;
-var spokeLast=false,lastBotAsked=false;
+var spokeLast=false,lastBotAsked=false,sending=false;
 var filterWaiting=false;
 function escHtml(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;")}
 
@@ -517,7 +517,7 @@ if("webkitSpeechRecognition" in window||"SpeechRecognition" in window){
     chatInput.value=transcript;
     if(e.results[0].isFinal){micBtn.classList.remove("listening");spokeLast=true;send()}
   };
-  recognition.onerror=function(e){micBtn.classList.remove("listening");if(e.error==="not-allowed")addMsg("Microphone access was denied. Check your browser permissions.",'bot')};
+  recognition.onerror=function(e){micBtn.classList.remove("listening");if(e.error==="not-allowed")addMsg("Microphone access was denied. Check your browser permissions.",'bot');else if(e.error==="no-speech")addMsg("I didn't hear anything. Try tapping the mic and speaking again.",'bot');else addMsg("Voice input didn't work this time. You can type instead!",'bot')};
   recognition.onend=function(){micBtn.classList.remove("listening")};
 }
 if(!recognition)micBtn.style.display="none";
@@ -980,11 +980,14 @@ function showHuman(){document.getElementById("humanModal").classList.add("open")
 
 // === Send ===
 async function send(){
-  var txt=chatInput.value.trim();if(!txt)return;
+  if(sending)return;sending=true;
+  var txt=chatInput.value.trim();if(!txt){sending=false;return};
   addMsg(txt,"user");chatInput.value="";showTyping();
-  try{
+  try{try{
 
   if(txt==="CLS"){hideTyping();clearMemory();return;}
+
+  if(S(txt)==="keep exploring"){hideTyping();clearAllFilters();addMsg("Here's the full catalogue again! What catches your eye?",'bot');return;}
 
   if(expectingHumanBot){
     var hb=S(txt);
@@ -1097,6 +1100,7 @@ async function send(){
     hideTyping();
     addMsg("Something went wrong on my end. Could you try again, or type <strong>human</strong> to speak to our team?",'bot');
   }
+  }finally{sending=false;}
 }
 
 // === Init ===
@@ -1107,8 +1111,9 @@ chatMsgs.addEventListener("click",function(e){var link=e.target.closest(".chat-l
 (function(){
   var b=document.getElementById("botBadge"),l=document.getElementById("botLabel");
   var m=document.getElementById("mcpBadge");
-  b.textContent="LLM Live";b.classList.add("live");l.textContent="Car finder &middot; AI-powered";
-  m.textContent="MCP Enabled";m.classList.add("mcp-live");
+  if(LLM_KEY){b.textContent="LLM Live";b.classList.add("live");}else{b.textContent="LLM Off"}
+  l.textContent="Car finder &middot; AI-powered";
+  if(API_PROXY){m.textContent="MCP Enabled";m.classList.add("mcp-live");}else{m.textContent="MCP Off"}
 
   loadMemory();
   if(memory.userName)l.textContent="Car finder &middot; knows "+memory.userName;
