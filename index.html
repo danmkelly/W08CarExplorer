@@ -601,6 +601,18 @@ async function fetchCars(retries){
       var data=await r.json();
       allCars=Array.isArray(data)?data:(data.results||data.cars||[]);
       if(!allCars.length)throw new Error("Empty dataset");
+      // Normalize string fields to lowercase for case-insensitive filtering
+      allCars.forEach(function(c){
+        if(c.manufacturer)c.manufacturer=S(c.manufacturer);
+        if(c.model)c.model=S(c.model);
+        if(c.fuel)c.fuel=S(c.fuel);
+        if(c.transmission)c.transmission=S(c.transmission);
+        if(c.type)c.type=S(c.type);
+        if(c.drive)c.drive=S(c.drive);
+        if(c.paint_color)c.paint_color=S(c.paint_color);
+        if(c.condition)c.condition=S(c.condition);
+        if(c.title_status)c.title_status=S(c.title_status);
+      });
       filteredCars=allCars.slice();
       document.getElementById("loadingOverlay").classList.remove("active");
       buildFilterOptions();
