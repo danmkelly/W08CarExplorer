@@ -815,7 +815,7 @@ function renderCars(){
         '<div class="car-detail-row"><span>Title</span><span>'+escHtml(ucfirst(c.title_status))+'</span></div>'+
         (c.size?'<div class="car-detail-row"><span>Size</span><span>'+escHtml(c.size)+'</span></div>':'')+
       '</div>'+
-      '<button class="car-enquire-btn" onclick="event.stopPropagation();openEnquire(\''+escHtml(ucfirst(c.manufacturer))+' '+escHtml(c.model)+'\','+c.year+',$'+c.price.toLocaleString()+'\')">📞 Enquire Now</button>'+
+      '<button class="car-enquire-btn" onclick="event.stopPropagation();openEnquire(\''+escHtml(ucfirst(c.manufacturer))+' '+escHtml(c.model)+'\','+c.year+','+c.price+')">📞 Enquire Now</button>'+
     '</div>';
   }).join("")||'<div style="text-align:center;padding:40px;color:var(--text-dim);font-size:0.85rem">No cars match your filters. Try adjusting the criteria or clearing filters.</div>';
   updateFilterUI();
@@ -832,9 +832,10 @@ function mfrColor(mfr){
   return c;
 }
 function openEnquire(carDesc,year,price){
+  var priceStr="$"+parseInt(price).toLocaleString();
   document.getElementById("enquireModalInner").innerHTML=
     '<h3>&#128222; Enquire About This Car</h3>'+
-    '<div class="modal-subtitle" style="color:var(--accent);font-size:0.82rem;margin-bottom:16px">'+escHtml(carDesc)+' ('+year+') &middot; '+price+'</div>'+
+    '<div class="modal-subtitle" style="color:var(--accent);font-size:0.82rem;margin-bottom:16px">'+escHtml(carDesc)+' ('+year+') &middot; '+priceStr+'</div>'+
     '<div class="modal-field"><label>Your name</label><input id="eqName" placeholder="Full name"></div>'+
     '<div class="modal-field"><label>Email</label><input id="eqEmail" type="email" placeholder="you@email.com"></div>'+
     '<div class="modal-field"><label>Phone</label><input id="eqPhone" type="tel" placeholder="+353 1 234 5678"></div>'+
@@ -939,61 +940,75 @@ function parsePriceVal(v){
   return parseInt(v);
 }
 
+// Generate suggestion chips that are guaranteed to produce results from current data
+function getSafeSuggestionChips(count){
+  count=count||5;
+  var chips=[];
+  // Find top types with cars under $50k
+  var typeCounts={};
+  allCars.forEach(function(c){
+    if(c.type&&c.price<50000){
+      typeCounts[c.type]=typeCounts[c.type]||{count:0,minPrice:999999};
+      typeCounts[c.type].count++;
+      if(c.price<typeCounts[c.type].minPrice)typeCounts[c.type].minPrice=c.price;
+    }
+  });
+  var sortedTypes=Object.keys(typeCounts).sort(function(a,b){return typeCounts[b].count-typeCounts[a].count});
+  sortedTypes.forEach(function(ty){
+    if(chips.length>=count)return;
+    var label=ty.charAt(0).toUpperCase()+ty.slice(1)+"s";
+    var minPrice=typeCounts[ty].minPrice;
+    var priceStr=minPrice<10000?" from $"+minPrice.toLocaleString():"";
+    chips.push(label+priceStr);
+  });
+  // Fallback if data not loaded yet
+  if(chips.length===0)chips=["SUVs under $30k","Sedans","Trucks","Electric cars","Human"];
+  if(chips.indexOf("Human")===-1)chips.push("Human");
+  return chips.slice(0,count+1);
+}
+
 function applyChatFilters(kw){
   var changed=false;
-  var hasNewMake=false, hasNewType=false;
   var origMfr=filters.manufacturer, origTypes=filters.types.slice();
 
-  // Smart interplay: if user asks for a DIFFERENT make/type, replace not augment.
-  // If user asks for the SAME make with new criteria, augment.
+  // Manufacturer: replace if different, set if empty
   if(kw.manufacturers.length>0){
     var m=kw.manufacturers[0];
     if(filters.manufacturer&&filters.manufacturer!==m){
-      hasNewMake=true;
-      if(filteredCars.length===0){
-        // Previous filter gave no results - this is a fresh start
-        filters.manufacturer=m;changed=true;
-      }
+      // Switching make: reset type/fuel/transmission/drive/color filters
+      filters.types=[];filters.fuels=[];filters.transmissions=[];filters.drives=[];filters.colors=[];
     }
-    if(!filters.manufacturer||filters.manufacturer===m){
-      if(filters.manufacturer!==m){filters.manufacturer=m;changed=true}
-    }
-    if(filters.manufacturer===m&&hasNewMake)hasNewMake=false;
-    document.getElementById("fManufacturer").value=filters.manufacturer||m;
-  }
-  if(kw.types.length>0){
-    var t=kw.types[0];
-    if(origTypes.length>0&&origTypes.indexOf(t)===-1){
-      hasNewType=true;
-    }
-    if(origTypes.length===0||origTypes.indexOf(t)>-1||!hasNewType){
-      if(!hasNewType)kw.types.forEach(function(ty){if(filters.types.indexOf(ty)===-1){filters.types.push(ty);changed=true}});
-    }
-  }
-  if(hasNewMake||hasNewType){
-    // Reset price/year when switching make/type context
-    if(hasNewMake&&filters.priceMin===null&&filters.priceMax===null&&filters.yearMin===null&&filters.yearMax===null){
-      // Don't reset if user explicitly set ranges
-    }
-    changed=true;
+    if(filters.manufacturer!==m){filters.manufacturer=m;changed=true}
+    document.getElementById("fManufacturer").value=m;
   }
 
+  // Types: apply on empty, augment on same, replace on different
+  if(kw.types.length>0){
+    var newType=kw.types[0];
+    if(origTypes.length===0){
+      // No existing type filter: set it
+      filters.types=[newType];changed=true;
+    }else if(origTypes.indexOf(newType)>-1){
+      // Same type already set: keep it, let other filters augment
+      // (no change needed)
+    }else{
+      // Different type: replace
+      filters.types=[newType];changed=true;
+    }
+  }
+
+  // Price and year: always apply directly
   if(kw.priceMin!==null){filters.priceMin=kw.priceMin;document.getElementById("fPriceMin").value=kw.priceMin;changed=true}
   if(kw.priceMax!==null){filters.priceMax=kw.priceMax;document.getElementById("fPriceMax").value=kw.priceMax;changed=true}
   if(kw.yearMin!==null){filters.yearMin=kw.yearMin;document.getElementById("fYearMin").value=kw.yearMin;changed=true}
   if(kw.yearMax!==null){filters.yearMax=kw.yearMax;document.getElementById("fYearMax").value=kw.yearMax;changed=true}
-  if(kw.fuels.length>0&&!hasNewMake&&!hasNewType){
-    kw.fuels.forEach(function(f){if(filters.fuels.indexOf(f)===-1){filters.fuels.push(f);changed=true}});
-  }
-  if(kw.transmissions.length>0&&!hasNewMake&&!hasNewType){
-    kw.transmissions.forEach(function(tr){if(filters.transmissions.indexOf(tr)===-1){filters.transmissions.push(tr);changed=true}});
-  }
-  if(kw.drives.length>0&&!hasNewMake&&!hasNewType){
-    kw.drives.forEach(function(d){if(filters.drives.indexOf(d)===-1){filters.drives.push(d);changed=true}});
-  }
-  if(kw.colors.length>0&&!hasNewMake&&!hasNewType){
-    kw.colors.forEach(function(cl){if(filters.colors.indexOf(cl)===-1){filters.colors.push(cl);changed=true}});
-  }
+
+  // Fuel, transmission, drive, color: augment (don't replace) for additive filtering
+  if(kw.fuels.length>0){kw.fuels.forEach(function(f){if(filters.fuels.indexOf(f)===-1){filters.fuels.push(f);changed=true}})}
+  if(kw.transmissions.length>0){kw.transmissions.forEach(function(tr){if(filters.transmissions.indexOf(tr)===-1){filters.transmissions.push(tr);changed=true}})}
+  if(kw.drives.length>0){kw.drives.forEach(function(d){if(filters.drives.indexOf(d)===-1){filters.drives.push(d);changed=true}})}
+  if(kw.colors.length>0){kw.colors.forEach(function(cl){if(filters.colors.indexOf(cl)===-1){filters.colors.push(cl);changed=true}})}
+
   if(changed){
     applyFilters();
     syncChipUI();
@@ -1208,10 +1223,10 @@ chatMsgs.addEventListener("click",function(e){var link=e.target.closest(".chat-l
     if(memory.consent==="yes"&&memory.userName){
       addMsg("Welcome back, <strong>"+memory.userName+"</strong>! Great to see you again. I've got our full catalogue of 1,200 cars ready.",'bot');
       setTimeout(function(){addMsg("What can I help with today? Same kind of search as last time or something different?",'bot')},800);
-      setTimeout(function(){addSugg(memory.recentSearches.length?memory.recentSearches.slice(0,4).concat(["Human"]):["SUVs under $30k","Electric cars","Toyota sedans","4WD Trucks","Human"]);lastBotAsked=true},1600);
+      setTimeout(function(){addSugg(memory.recentSearches.length?memory.recentSearches.slice(0,4).concat(["Human"]):getSafeSuggestionChips(4));lastBotAsked=true},1600);
     }else if(memory.consent==="no"){
       addMsg("Welcome back! I'm <strong>Beep-Beep</strong>, an AI chatbot. You asked me not to store anything, so this is a fresh start. Type <strong>human</strong> any time to reach our team.",'bot');
-      setTimeout(function(){addMsg("What are you looking for today?",'bot');addSugg(["SUVs under $30k","Electric cars","Toyota sedans","4WD Trucks","Human"]);lastBotAsked=true},1000);
+      setTimeout(function(){addMsg("What are you looking for today?",'bot');addSugg(getSafeSuggestionChips(4));lastBotAsked=true},1000);
     }else{
       addMsg("Hello! I'm <strong>Beep-Beep</strong>, an AI chatbot powered by DeepSeek. I help you find the right car from <strong>1,200 vehicles</strong> across 40+ manufacturers -- everything from sleek sedans and rugged trucks to electric and hybrid models. Prices range from $1,100 to $100,000.",'bot');
       setTimeout(function(){
