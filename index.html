@@ -159,7 +159,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .car-card-name .car-year{color:var(--blue);margin-right:4px;font-weight:800}
 .car-card-price{font-size:1.3rem;font-weight:800;color:var(--accent);text-shadow:0 0 10px var(--accent-glow);margin-bottom:8px}
 .car-card-badges{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px}
-.car-badge{background:rgba(255,255,255,0.05);padding:3px 8px;border-radius:6px;font-size:0.6rem;color:var(--text-dim);white-space:nowrap}\n.car-condition-badge{display:inline-block;padding:3px 10px;border-radius:6px;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:6px}
+.car-badge{background:rgba(255,255,255,0.05);padding:3px 8px;border-radius:6px;font-size:0.6rem;color:var(--text-dim);white-space:nowrap}
+.car-condition-badge{display:inline-block;padding:3px 10px;border-radius:6px;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:6px}
 .car-condition-badge.excellent,.car-condition-badge.like-new{background:rgba(46,204,113,0.2);color:#2ECC71;border:1px solid rgba(46,204,113,0.3)}
 .car-condition-badge.good{background:rgba(52,152,219,0.2);color:#3498DB;border:1px solid rgba(52,152,219,0.3)}
 .car-condition-badge.fair{background:rgba(241,196,15,0.2);color:#F1C40F;border:1px solid rgba(241,196,15,0.3)}
@@ -850,8 +851,10 @@ function submitEnquire(){
   document.getElementById("enquireModalInner").innerHTML=
     '<div class="modal-done"><div class="modal-done-icon">&#9989;</div><p>Thanks, <strong>'+escHtml(name)+'</strong>!</p><p style="margin-top:8px">Your enquiry has been submitted. A dealer representative would contact you at <strong>'+escHtml(email)+'</strong> within 24 hours.</p><p style="margin-top:8px;font-size:0.7rem;color:var(--text-dim)">This is a simulated response for academic demonstration.</p><button class="modal-btn modal-btn-submit" style="width:100%;margin-top:16px" onclick="closeEnquire()">Got it</button></div>';
 }
-  if(s.indexOf("Carvana")===0)return "Carvana Certified";
-  return s.length>30?s.slice(0,30)+"...":s;
+function trucateState(s){
+  if(!s)return "Unknown";
+  var states={"al":"Alabama","ak":"Alaska","az":"Arizona","ar":"Arkansas","ca":"California","co":"Colorado","ct":"Connecticut","de":"Delaware","fl":"Florida","ga":"Georgia","hi":"Hawaii","id":"Idaho","il":"Illinois","in":"Indiana","ia":"Iowa","ks":"Kansas","ky":"Kentucky","la":"Louisiana","me":"Maine","md":"Maryland","ma":"Massachusetts","mi":"Michigan","mn":"Minnesota","ms":"Mississippi","mo":"Missouri","mt":"Montana","ne":"Nebraska","nv":"Nevada","nh":"New Hampshire","nj":"New Jersey","nm":"New Mexico","ny":"New York","nc":"North Carolina","nd":"North Dakota","oh":"Ohio","ok":"Oklahoma","or":"Oregon","pa":"Pennsylvania","ri":"Rhode Island","sc":"South Carolina","sd":"South Dakota","tn":"Tennessee","tx":"Texas","ut":"Utah","vt":"Vermont","va":"Virginia","wa":"Washington","wv":"West Virginia","wi":"Wisconsin","wy":"Wyoming","dc":"Washington DC"};
+  var low=S(s);return states[low]||s.slice(0,30);
 }
 
 function toggleCarCard(i){
