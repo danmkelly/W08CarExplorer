@@ -4,3 +4,5 @@ config.js
 .DS_Store
 dist/
 *.log
+initial_prompt.txt
+kaggle data/
